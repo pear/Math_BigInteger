@@ -1,6 +1,6 @@
 <?
 // $Id$
-// Example of how to use of Math_BigInteger.  The output can be compared to the output that the BCMath functions would yield.
+// Example of how to use of BigInteger.  The output can be compared to the output that the BCMath functions would yield.
 
 if ( !function_exists('bcpowmod') ) {
     function bcpowmod($x,$y,$z) {

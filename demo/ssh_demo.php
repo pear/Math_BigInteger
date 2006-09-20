@@ -3,10 +3,10 @@
 // Example of Math_BigInteger's speed.  The numbers are obtained by partially negotiating an SSHv1 session with
 // shell.sourceforge.net.
 
-// On a 1.6GHz Intel Pentium-M, the modular exponentiation took half a second, whereas with the BCMath functions,
-// it took a hundreths of a second.  That BCMath is faster, however, should come as no surprise, given that BCMath
-// has been pre-compiled into assembly and in all likelyhood uses 64-bit integers - something that PHP, quite simply,
-// does not support, as yet.
+// On a 1.6GHz Intel Pentium-M running PHP5, the modular exponentiation took less than a fifth of a second, whereas
+// with the BCMath functions, it took a hundreths of a second.  That BCMath is faster, however, should come as no
+// surprise, given that BCMath has been pre-compiled into assembly and in all likelyhood uses 64-bit integers - something
+// that PHP, quite simply, does not support, as yet.
 
 if ( !function_exists('bcpowmod') ) {
     function bcpowmod($x,$y,$z) {
@@ -25,9 +25,12 @@ if ( !function_exists('bcpowmod') ) {
 include('../Math_BigInteger.php');
 define('SSH_SMSG_PUBLIC_KEY',2);
 
+error_reporting(E_STRICT);
+
 // if shell.sourceforge.net doesn't work for you, try another domain name.
 //ssh1_connect('shell.sourceforge.net',22);
-ssh1_connect('orange-pekoe.cs.utexas.edu',22);
+ssh1_connect('black.cs.utexas.edu',22);
+//ssh1_connect('cvs.php.net',22);
 
 function ssh1_connect($host,$port) {
     $identifier = 'SSH-1.5-'.basename(__FILE__);
