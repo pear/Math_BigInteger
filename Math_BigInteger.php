@@ -4,12 +4,15 @@
 /**
  * Pure-PHP arbitrary precision integer arithmetic library.
  *
- * Supports base-2, base-10, base-16, and base-256 numbers.  Negative numbers are supported in all publically accessable
- * functions save for modPow and modInverse.
+ * Supports base-2, base-10, base-16, and base-256 numbers.  Uses the GMP or BCMath extensions, if available,
+ * and an internal implementation, otherwise.
  *
  * PHP versions 4 and 5
  *
- * {@internal Math_BigInteger uses base-2**26 to perform operations such as multiplication and division and
+ * {@internal (all DocBlock comments regarding implementation - such as the one that follows - refer to the 
+ * {@link MATH_BIGINTEGER_MODE_INTERNAL MATH_BIGINTEGER_MODE_INTERNAL} mode)
+ *
+ * Math_BigInteger uses base-2**26 to perform operations such as multiplication and division and
  * base-2**52 (ie. two base 2**26 digits) to perform addition and subtraction.  Because the largest possible
  * value when multiplying two base-2**26 numbers together is a base-2**52 number, double precision floating
  * point numbers - numbers that should be supported on most hardware and whose significand is 53 bits - are
@@ -18,7 +21,7 @@
  * base is being used should more than compensate.
  *
  * When PHP version 6 is officially released, we'll be able to use 64-bit integers.  This should, once again,
- * allow bitwise operators, and should increase the maximum base we can use to 2**31 (or 2**62 for addition /
+ * allow bitwise operators, and will increase the maximum possible base to 2**31 (or 2**62 for addition /
  * subtraction).
  *
  * Useful resources are as follows:
@@ -28,7 +31,7 @@
  *  - Java's BigInteger classes.  See /j2se/src/share/classes/java/math in jdk-1_5_0-src-jrl.zip
  *
  * One idea for optimization is to use the comba method to reduce the number of operations performed.
- * Multi-Precision Math uses this quite extensively.  The following URL elaborates:
+ * MPM uses this quite extensively.  The following URL elaborates:
  *
  * {@link http://www.everything2.com/index.pl?node_id=1736418}}}
  *
@@ -71,11 +74,10 @@
  */
 
 /**
- * Include PHP_Compat modules bcpowmod and bcinvert since those functions do not exist in PHP4:
+ * Include PHP_Compat module bcpowmod since that function does not exist in PHP4:
  * {@link http://pear.php.net/package/PHP_Compat/}
  */
 require_once 'PHP/Compat/Function/bcpowmod.php';
-require_once 'PHP/Compat/Function/bcinvert.php';
 
 /**#@+
  * @access private
@@ -147,7 +149,7 @@ define('MATH_BIGINTEGER_MODE_GMP',3);
  * and modInverse.
  *
  * @author  Jim Wigginton <terrafrost@php.net>
- * @version 0.3
+ * @version 0.4
  * @access  public
  * @package Math_BigInteger
  */
@@ -283,7 +285,9 @@ class Math_BigInteger {
                         $this->value = gmp_init($x);
                         break;
                     case MATH_BIGINTEGER_MODE_BCMATH:
-                        $this->value = $x;
+                        // explicitly casting $x to a string is necessary, here, since doing $x{0} on -1 yields different
+                        // results then doing it on '-1' does (modInverse does $x{0})
+                        $this->value = (string) $x;
                         break;
                     case MATH_BIGINTEGER_MODE_INTERNAL:
                         $temp = new Math_BigInteger();
@@ -525,7 +529,7 @@ class Math_BigInteger {
 
             $temp = floor($sum / 0x4000000);
 
-            $result->value[] = $sum - 0x4000000 * $temp;
+            $result->value[] = $sum - 0x4000000 * $temp; // eg. a faster alternative to fmod($sum,0x4000000)
             $result->value[] = $temp;
         }
 
@@ -984,6 +988,18 @@ class Math_BigInteger {
      */
     function modPow($e, $n)
     {
+        $n = $n->abs();
+        if ($e->compare(new Math_BigInteger()) < 0) {
+            $e = $e->abs();
+
+            $temp = $this->modInverse($n);
+            if ($temp === false) {
+                return false;
+            }
+
+            return $temp->modPow($e,$n);
+        }
+
         switch ( $this->mode ) {
             case MATH_BIGINTEGER_MODE_GMP:
                 $temp = new Math_BigInteger();
@@ -1364,17 +1380,83 @@ class Math_BigInteger {
                 $temp = new Math_BigInteger();
                 $temp->value = gmp_invert($this->value, $n->value);
 
-                return $temp;
+                return ( $temp->value === false ) ? false : $temp;
             case MATH_BIGINTEGER_MODE_BCMATH:
-                $temp = new Math_BigInteger();
-                $temp->value = bcinvert($this->value, $x->value);
+                // it might be faster to use the binary xGCD algorithim here, as well, but (1) that algorithim works
+                // best when the base is a power of 2 and (2) i don't think it'd make much difference, anyway.  as is,
+                // the basic extended euclidean algorithim is what we're using.
 
-                return $temp;
+                // if $x is less than 0, the first character of $x is a '-', so we'll remove it.  we can do this because
+                // $x mod $n == $x mod -$n.
+		$n = (bccomp($n->value, '0') < 0) ? substr($n->value, 1) : $n->value;
+
+                if (bccomp($this->value,'0') < 0) {
+                    $negated_this = new Math_BigInteger();
+                    $negated_this->value = substr($this->value, 1);
+
+                    $temp = $negated_this->modInverse(new Math_BigInteger($n));
+
+                    if ($temp === false) {
+                        return false;
+                    }
+
+                    $temp->value = bcsub($n, $temp->value);
+
+                    return $temp;
+                }
+
+                $u = $this->value;
+                $v = $n;
+
+                $a = '1';
+                $c = '0';
+
+                while (true) {
+                    $q = bcdiv($u, $v);
+                    $temp = $u;
+                    $u = $v;
+                    $v = bcsub($temp, bcmul($v, $q));
+
+                    if (bccomp($v, '0') == 0) {
+                        break;
+                    }
+
+                    $temp = $a;
+                    $a = $c;
+                    $c = bcsub($temp, bcmul($c, $q));
+                }
+
+                $temp = new Math_BigInteger();
+                $temp->value = (bccomp($c, '0') < 0) ? bcadd($c, $n) : $c;
+
+                // $u contains the gcd of $this and $n
+                return (bccomp($u,'1') == 0) ? $temp : false;
         }
 
         // if $this and $n are even, return false.
         if ( !($this->value[0]&1) && !($n->value[0]&1) ) {
             return false;
+        }
+
+        $n = $n->_copy();
+        $n->is_negative = false;
+
+        if ($this->compare(new Math_BigInteger()) < 0) {
+            // is_negative is currently true.  since we need it to be false, we'll just set it to false, temporarily,
+            // and reset it as true, later.
+            $this->is_negative = false;
+
+            $temp = $this->modInverse($n);
+
+            if ($temp === false) {
+                return false;
+            }
+
+            $temp = $n->subtract($temp);
+
+            $this->is_negative = true;
+
+            return $temp;
         }
 
         $u = $n->_copy();
@@ -1428,7 +1510,33 @@ class Math_BigInteger {
             return false;
         }
 
-        return ($d->compare(new Math_BigInteger()) < 0) ? $d->add($n) : $d;
+        $d = ($d->compare(new Math_BigInteger()) < 0) ? $d->add($n) : $d;
+
+        return ($this->is_negative) ? $n->subtract($d) : $d;
+    }
+
+    /**
+     * Returns the absolute value.
+     *
+     * @return Math_BigInteger
+     * @access public
+     */
+    function abs()
+    {
+        $temp = new Math_BigInteger();
+
+        switch ( $this->mode ) {
+            case MATH_BIGINTEGER_MODE_GMP:
+                $temp->value = gmp_abs($this->value);
+                break;
+            case MATH_BIGINTEGER_MODE_BCMATH:
+                $temp->value = (bccomp($this->value, '0') < 0) ? substr($this->value, 1) : $this->value;
+                break;
+            default:
+                $temp->value = $this->value;
+        }
+
+        return $temp;        
     }
 
     /**
@@ -1492,6 +1600,7 @@ class Math_BigInteger {
     /**
      * Logical And (base-256)
      *
+     * @param String $x
      * @access private
      * @return String
      */

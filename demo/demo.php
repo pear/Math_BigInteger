@@ -2,19 +2,7 @@
 // $Id$
 // Example of how to use of BigInteger.  The output can be compared to the output that the BCMath functions would yield.
 
-if ( !function_exists('bcpowmod') ) {
-    function bcpowmod($x,$y,$z) {
-        $result = 1;
-        while ( bccomp($y,0) > 0) {
-            if ( bcmod($y,2) ) {
-                $result = bcmod(bcmul($result, $x), $z);
-            }
-            $x = bcmod(bcmul($x, $x), $z);
-            $y = bcdiv($y, 2);
-        }
-        return $result;
-    }
-}
+// bcpowmod is included with Math_BigInteger.php via PHP_Compat.
 
 include('../Math_BigInteger.php');
 
