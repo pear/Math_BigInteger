@@ -149,7 +149,7 @@ define('MATH_BIGINTEGER_MODE_GMP',3);
  * and modInverse.
  *
  * @author  Jim Wigginton <terrafrost@php.net>
- * @version 0.4
+ * @version 1.0.0RC1
  * @access  public
  * @package Math_BigInteger
  */

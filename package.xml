@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<package version="1.0">
+  <name>Math_BigInteger</name>
+  <summary>Pure-PHP arbitrary precission integer arithmetic library</summary>
+  <description>Supports base-2, base-10, base-16, and base-256 numbers.  Uses the GMP or BCMath extensions, if available, and an internal implementation, otherwise.</description>
+  <maintainers>
+    <maintainer>
+      <user>terrafrost</user>
+      <name>Jim Wigginton</name>
+      <email>terrafrost@php.net</email>
+      <role>lead</role>
+    </maintainer>
+  </maintainers>
+  <release>
+    <version>1.0.0RC1</version>
+    <date>2006-10-26</date>
+    <license>LGPL</license>
+    <state>beta</state>
+    <notes>Initial PEAR release.</notes>
+    <filelist>
+      <file role="php" baseinstalldir="Math" md5sum="5532a14121afc13b6cc4e1b14c9176a6" name="Math_BigInteger.php"/>
+      <file role="php" baseinstalldir="Math" md5sum="0476603a690f133ef95da98e42b793df" name="demo/demo.php"/>
+      <file role="php" baseinstalldir="Math" md5sum="ca082b7dbd4d13f9630b7a4962ec4527" name="demo/ssh_demo.php"/>
+    </filelist>
+  </release>
+  <changelog>
+    <release>
+    </release>
+  </changelog>
+</package>
