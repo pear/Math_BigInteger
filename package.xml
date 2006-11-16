@@ -1,30 +1,82 @@
-<?xml version="1.0" encoding="ISO-8859-1" ?>
-<package version="1.0">
-  <name>Math_BigInteger</name>
-  <summary>Pure-PHP arbitrary precission integer arithmetic library</summary>
-  <description>Supports base-2, base-10, base-16, and base-256 numbers.  Uses the GMP or BCMath extensions, if available, and an internal implementation, otherwise.</description>
-  <maintainers>
-    <maintainer>
-      <user>terrafrost</user>
-      <name>Jim Wigginton</name>
-      <email>terrafrost@php.net</email>
-      <role>lead</role>
-    </maintainer>
-  </maintainers>
+<?xml version="1.0"?>
+<package version="2.0" xmlns="http://pear.php.net/dtd/package-2.0" xmlns:tasks="http://pear.php.net/dtd/tasks-1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://pear.php.net/dtd/tasks-1.0 http://pear.php.net/dtd/tasks-1.0.xsd http://pear.php.net/dtd/package-2.0 http://pear.php.net/dtd/package-2.0.xsd">
+ <name>Math_BigInteger</name>
+ <channel>pear.php.net</channel>
+ <summary>Pure-PHP arbitrary precission integer arithmetic library</summary>
+ <description>
+Supports base-2, base-10, base-16, and base-256 numbers.  Uses the GMP or BCMath extensions, if available, and an internal implementation, otherwise.
+ </description>
+ <lead>
+  <name>Jim Wigginton</name>
+  <user>terrafrost</user>
+  <email>terrafrost@php.net</email>
+  <active>yes</active>
+ </lead>
+ <date>2006-10-26</date>
+ <version>
+  <release>1.0.0RC2</release>
+  <api>1.0.0</api>
+ </version>
+ <stability>
+  <release>beta</release>
+  <api>beta</api>
+ </stability>
+ <license uri="http://www.gnu.org/licenses/lgpl.html">LGPL License</license>
+ <notes>
+Initial PEAR release.
+ </notes>
+ <contents>
+  <dir name="/">
+    <file name="Math_BigInteger.php" role="php" />
+    <file name="demo/demo.php" role="php" />
+    <file name="demo/ssh_demo.php" role="php" />
+  </dir>
+ </contents>
+ <dependencies>
+  <required>
+   <php>
+    <min>4.2</min>
+   </php>
+   <pearinstaller>
+    <min>1.4.0</min>
+   </pearinstaller>
+   <package>
+    <name>PHP_Compat</name>
+    <channel>pear.php.net</channel>
+    <min>1.5</min>
+   </package>
+   <extension>
+    <name>pcre</name>
+   </extension>
+  </required>
+ </dependencies>
+ <phprelease />
+ <changelog>
   <release>
-    <version>1.0.0RC1</version>
-    <date>2006-10-26</date>
-    <license>LGPL</license>
-    <state>beta</state>
-    <notes>Initial PEAR release.</notes>
-    <filelist>
-      <file role="php" baseinstalldir="Math" md5sum="5532a14121afc13b6cc4e1b14c9176a6" name="Math_BigInteger.php"/>
-      <file role="php" baseinstalldir="Math" md5sum="0476603a690f133ef95da98e42b793df" name="demo/demo.php"/>
-      <file role="php" baseinstalldir="Math" md5sum="ca082b7dbd4d13f9630b7a4962ec4527" name="demo/ssh_demo.php"/>
-    </filelist>
+   <version>
+    <release>1.0.0RC2</release>
+    <api>1.0.0</api>
+   </version>
+   <stability>
+    <release>beta</release>
+    <api>beta</api>
+   </stability>
+   <date>2006-11-16</date>
+   <license uri="http://www.gnu.org/licenses/lgpl.html">LGPL</license>
+   <notes>Added bitwise_or(), bitwise_and(), bitwise_xor(), and bitwise_not()</notes>
   </release>
-  <changelog>
-    <release>
-    </release>
-  </changelog>
+  <release>
+   <version>
+    <release>1.0.0RC1</release>
+    <api>1.0.0</api>
+   </version>
+   <stability>
+    <release>beta</release>
+    <api>beta</api>
+   </stability>
+   <date>2006-10-26</date>
+   <license uri="http://www.gnu.org/licenses/lgpl.html">LGPL</license>
+   <notes>Initial PEAR release.</notes>
+  </release>
+ </changelog>
 </package>
