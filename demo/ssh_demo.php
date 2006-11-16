@@ -13,6 +13,8 @@
 include('../Math_BigInteger.php');
 define('SSH_SMSG_PUBLIC_KEY',2);
 
+//define('MATH_BIGINTEGER_MODE',MATH_BIGINTEGER_MODE_INTERNAL);
+
 error_reporting(E_STRICT);
 
 // if shell.sourceforge.net doesn't work for you, try another domain name.
@@ -263,7 +265,7 @@ function rsa_crypt2($m, $key) {
     echo "\r\nRSA with BCMath\r\n\r\n($m ^ {$key[0]}) % {$key[1]}\r\n\r\n";
 
     $start = microtime_float();
-    $temp = bcpowmod($m,$key[0],$key[1]);
+    $temp = bcpowmod($m,$key[0],$key[1],0);
     $end = microtime_float()-$start;
     echo $temp;
 

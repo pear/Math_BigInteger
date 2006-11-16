@@ -76,8 +76,12 @@
 /**
  * Include PHP_Compat module bcpowmod since that function does not exist in PHP4:
  * {@link http://pear.php.net/package/PHP_Compat/}
+ * {@link http://php.net/function.bcpowmod}
  */
 require_once 'PHP/Compat/Function/bcpowmod.php';
+// array_fill requires PHP 4.2.0+, per http://php.net/function.array_fill
+// see http://www.frostjedi.com/terra/scripts/pear/array_fill.phps
+// require_once 'PHP/Compat/Function/array_fill.php';
 
 /**#@+
  * @access private
@@ -123,7 +127,7 @@ define('MATH_BIGINTEGER_DATA', 1);
 
 /**#@+
  * @access private
- * @see Math_BigInteger::$mode
+ * @see Math_BigInteger::Math_BigInteger()
  */
 /**
  * To use the pure-PHP implementation
@@ -149,7 +153,7 @@ define('MATH_BIGINTEGER_MODE_GMP',3);
  * and modInverse.
  *
  * @author  Jim Wigginton <terrafrost@php.net>
- * @version 1.0.0RC1
+ * @version 1.0.0RC2
  * @access  public
  * @package Math_BigInteger
  */
@@ -169,20 +173,6 @@ class Math_BigInteger {
      * @access private
      */
     var $is_negative = false;
-
-    /**
-     * Holds the BigInteger's "mode"
-     *
-     * A pure-PHP implementation is only needed when certain extensions aren't installed or enabled.  This
-     * variable determines which extension we test for first.  The first usable mode that's found is the one
-     * that's used.  As such, if you want to use the lowest mode - MATH_BIGINTEGER_MODE_INTERNAL - set this
-     * to that. 
-     *
-     * @see Math_BigInteger::Math_BigInteger()
-     * @var Integer
-     * @access private
-     */
-    var $mode = MATH_BIGINTEGER_MODE_GMP;
 
     /**
      * Converts base-2, base-10, base-16, and binary strings (eg. base-256) to BigIntegers.
@@ -205,29 +195,38 @@ class Math_BigInteger {
      */
     function Math_BigInteger($x = 0, $base = 10)
     {
-        switch ( $this->mode ) {
+        if ( !defined('MATH_BIGINTEGER_MODE') ) {
+            switch (true) {
+                case extension_loaded('gmp'):
+                    define('MATH_BIGINTEGER_MODE', MATH_BIGINTEGER_MODE_GMP);
+                    break;
+                case extension_loaded('bcmath'):
+                    define('MATH_BIGINTEGER_MODE', MATH_BIGINTEGER_MODE_BCMATH);
+                    break;
+                default:
+                    $this->value = array();
+                    define('MATH_BIGINTEGER_MODE', MATH_BIGINTEGER_MODE_INTERNAL);
+            }
+        }
+
+        switch (MATH_BIGINTEGER_MODE) {
             case MATH_BIGINTEGER_MODE_GMP:
-                if ( extension_loaded('gmp') ) {
-                    $this->value = '';
-                    break;
-                }
-                $this->mode = MATH_BIGINTEGER_MODE_BCMATH;
+                $this->value = gmp_init(0);
+                break;
             case MATH_BIGINTEGER_MODE_BCMATH:
-                if ( extension_loaded('bcmath') ) {
-                    $this->value = '0';
-                    break;
-                }
+                $this->value = '0';
+                break;
             default:
                 $this->value = array();
-                $this->mode = MATH_BIGINTEGER_MODE_INTERNAL;
         }
 
         if ($x === 0) {
             return;
         }
+
         switch ($base) {
             case 256:
-                switch ($this->mode) {
+                switch (MATH_BIGINTEGER_MODE) {
                     case MATH_BIGINTEGER_MODE_GMP:
                         $temp = unpack('H*hex', $x);
                         $this->value = gmp_init('0x' . $temp['hex']);
@@ -254,12 +253,12 @@ class Math_BigInteger {
             case 16:
                 if ($x{0} == '-') {
                     $this->is_negative = true;
-                    $x = substr($x,1);
+                    $x = substr($x, 1);
                 }
 
                 $x = preg_replace('#^(?:0x)?([A-Fa-f0-9]*).*#', '$1', $x);
 
-                switch ($this->mode) {
+                switch (MATH_BIGINTEGER_MODE) {
                     case MATH_BIGINTEGER_MODE_GMP:
                         $temp = $this->is_negative ? '-0x' . $x : '0x' . $x;
                         $this->value = gmp_init($temp);
@@ -280,7 +279,7 @@ class Math_BigInteger {
             case 10:
                 $x = preg_replace('#^(-?[0-9]*).*#','$1',$x);
 
-                switch ($this->mode) {
+                switch (MATH_BIGINTEGER_MODE) {
                     case MATH_BIGINTEGER_MODE_GMP:
                         $this->value = gmp_init($x);
                         break;
@@ -312,7 +311,12 @@ class Math_BigInteger {
                         $this->value = $temp->value;
                 }
                 break;
-            case 2: // base-2 support implemented by Lluis Pamies - thanks!
+            case 2: // base-2 support originally implemented by Lluis Pamies - thanks!
+                if (MATH_BIGINTEGER_MODE == MATH_BIGINTEGER_MODE_GMP) {
+                    $this->value = gmp_init($x, 2);
+                    break;
+                }
+
                 if ($x{0} == '-') {
                     $this->is_negative = true;
                     $x = substr($x, 1);
@@ -323,13 +327,19 @@ class Math_BigInteger {
 
                 $str = '0x';
                 while (strlen($x)) {
-                   $str.= substr($x, 0, 4);
+                   $part = substr($x, 0, 4);
                    $str.= dechex(bindec($part));
                    $x = substr($x, 4);
                 }
 
                 $temp = new Math_BigInteger($str, 16);
                 $this->value = $temp->value;
+
+                if (MATH_BINGINTEGER_MODE == MATH_BIGINTEGER_MODE_BCMATH && $this->is_negative) {
+                    $this->value = '-' . $this->value;
+                    $this->is_negative = false;
+                }
+
                 break;
             default:
                 // base not supported, so we'll let $this == 0
@@ -356,9 +366,9 @@ class Math_BigInteger {
      */
     function toBytes()
     {
-        switch ( $this->mode ) {
+        switch ( MATH_BIGINTEGER_MODE ) {
             case MATH_BIGINTEGER_MODE_GMP:
-                if ($this->value === '') {
+                if (gmp_cmp($this->value, gmp_init(0)) == 0) {
                     return '';
                 }
 
@@ -421,13 +431,9 @@ class Math_BigInteger {
      */
     function toString()
     {
-        switch ( $this->mode ) {
+        switch ( MATH_BIGINTEGER_MODE ) {
             case MATH_BIGINTEGER_MODE_GMP:
-                if ($this->value === '') {
-                    return '0';
-                }
-
-                return ltrim(gmp_strval($this->value), '0');
+                return gmp_strval($this->value);
             case MATH_BIGINTEGER_MODE_BCMATH:
                 if ($this->value === '0') {
                     return '0';
@@ -479,7 +485,7 @@ class Math_BigInteger {
      */
     function add($y)
     {
-        switch ( $this->mode ) {
+        switch ( MATH_BIGINTEGER_MODE ) {
             case MATH_BIGINTEGER_MODE_GMP:
                 $temp = new Math_BigInteger();
                 $temp->value = gmp_add($this->value, $y->value);
@@ -566,7 +572,7 @@ class Math_BigInteger {
      */
     function subtract($y)
     {
-        switch ( $this->mode ) {
+        switch ( MATH_BIGINTEGER_MODE ) {
             case MATH_BIGINTEGER_MODE_GMP:
                 $temp = new Math_BigInteger();
                 $temp->value = gmp_sub($this->value, $y->value);
@@ -666,7 +672,7 @@ class Math_BigInteger {
      */
     function multiply($x)
     {
-        switch ( $this->mode ) {
+        switch (MATH_BIGINTEGER_MODE ) {
             case MATH_BIGINTEGER_MODE_GMP:
                 $temp = new Math_BigInteger();
                 $temp->value = gmp_mul($this->value, $x->value);
@@ -805,7 +811,7 @@ class Math_BigInteger {
      */
     function divide($y)
     {
-        switch ( $this->mode ) {
+        switch ( MATH_BIGINTEGER_MODE ) {
             case MATH_BIGINTEGER_MODE_GMP:
                 $quotient = new Math_BigInteger();
                 $remainder = new Math_BigInteger();
@@ -1000,15 +1006,17 @@ class Math_BigInteger {
             return $temp->modPow($e,$n);
         }
 
-        switch ( $this->mode ) {
+        switch ( MATH_BIGINTEGER_MODE ) {
             case MATH_BIGINTEGER_MODE_GMP:
                 $temp = new Math_BigInteger();
                 $temp->value = gmp_powm($this->value, $e->value, $n->value);
 
                 return $temp;
             case MATH_BIGINTEGER_MODE_BCMATH:
+                // even though the last parameter is optional, according to php.net, it's not optional in
+                // PHP_Compat 1.5.0 when running PHP 4.
                 $temp = new Math_BigInteger();
-                $temp->value = bcpowmod($this->value, $e->value, $n->value);
+                $temp->value = bcpowmod($this->value, $e->value, $n->value, 0);
 
                 return $temp;
         }
@@ -1207,7 +1215,7 @@ class Math_BigInteger {
     {
         $temp = new Math_BigInteger();
         $temp->value = array(1);
-        return $this->_and($n->subtract($temp));
+        return $this->bitwise_and($n->subtract($temp));
     }
 
     /**
@@ -1375,7 +1383,7 @@ class Math_BigInteger {
      */
     function modInverse($n)
     {
-        switch ( $this->mode ) {
+        switch ( MATH_BIGINTEGER_MODE ) {
             case MATH_BIGINTEGER_MODE_GMP:
                 $temp = new Math_BigInteger();
                 $temp->value = gmp_invert($this->value, $n->value);
@@ -1516,7 +1524,7 @@ class Math_BigInteger {
     }
 
     /**
-     * Returns the absolute value.
+     * Absolute value.
      *
      * @return Math_BigInteger
      * @access public
@@ -1525,7 +1533,7 @@ class Math_BigInteger {
     {
         $temp = new Math_BigInteger();
 
-        switch ( $this->mode ) {
+        switch ( MATH_BIGINTEGER_MODE ) {
             case MATH_BIGINTEGER_MODE_GMP:
                 $temp->value = gmp_abs($this->value);
                 break;
@@ -1536,7 +1544,7 @@ class Math_BigInteger {
                 $temp->value = $this->value;
         }
 
-        return $temp;        
+        return $temp;
     }
 
     /**
@@ -1549,7 +1557,7 @@ class Math_BigInteger {
      */
     function compare($x)
     {
-        switch ( $this->mode ) {
+        switch ( MATH_BIGINTEGER_MODE ) {
             case MATH_BIGINTEGER_MODE_GMP:
                 return gmp_cmp($this->value, $x->value);
             case MATH_BIGINTEGER_MODE_BCMATH:
@@ -1598,14 +1606,25 @@ class Math_BigInteger {
     }
 
     /**
-     * Logical And (base-256)
+     * Logical And
      *
-     * @param String $x
-     * @access private
-     * @return String
+     * @param Math_BigInteger $x
+     * @access public
+     * @internal Implemented per a request by Lluis Pamies i Juarez <lluis _a_ pamies.cat>
+     * @return Math_BigInteger
      */
-    function _and($x)
+    function bitwise_and($x)
     {
+        switch ( MATH_BIGINTEGER_MODE ) {
+            case MATH_BIGINTEGER_MODE_GMP:
+                $temp = new Math_BigInteger();
+                $temp->value = gmp_and($this->value, $x->value);
+
+                return $temp;
+            case MATH_BIGINTEGER_MODE_BCMATH:
+                return new Math_BigInteger($this->toBytes() & $x->toBytes(), 256);
+        }
+
         $result = new Math_BigInteger();
 
         $x_length = count($x->value);
@@ -1614,6 +1633,114 @@ class Math_BigInteger {
         }
 
         return $result->_normalize();
+    }
+
+    /**
+     * Logical Or
+     *
+     * @param Math_BigInteger $x
+     * @access public
+     * @internal Implemented per a request by Lluis Pamies i Juarez <lluis _a_ pamies.cat>
+     * @return Math_BigInteger
+     */
+    function bitwise_or($x)
+    {
+        switch ( MATH_BIGINTEGER_MODE ) {
+            case MATH_BIGINTEGER_MODE_GMP:
+                $temp = new Math_BigInteger();
+                $temp->value = gmp_or($this->value, $x->value);
+
+                return $temp;
+            case MATH_BIGINTEGER_MODE_BCMATH:
+                return new Math_BigInteger($this->toBytes() | $x->toBytes(), 256);
+        }
+
+        $result = new Math_BigInteger();
+
+        $x_length = count($x->value);
+        for ($i = 0; $i < $x_length; $i++) {
+            $result->value[] = $this->value[$i] | $x->value[$i];
+        }
+
+        return $result->_normalize();
+    }
+
+    /**
+     * Logical Exclusive-Or
+     *
+     * @param Math_BigInteger $x
+     * @access public
+     * @internal Implemented per a request by Lluis Pamies i Juarez <lluis _a_ pamies.cat>
+     * @return Math_BigInteger
+     */
+    function bitwise_xor($x)
+    {
+        switch ( MATH_BIGINTEGER_MODE ) {
+            case MATH_BIGINTEGER_MODE_GMP:
+                $temp = new Math_BigInteger();
+                $temp->value = gmp_xor($this->value, $x->value);
+
+                return $temp;
+            case MATH_BIGINTEGER_MODE_BCMATH:
+                return new Math_BigInteger($this->toBytes() ^ $x->toBytes(), 256);
+        }
+
+        $result = new Math_BigInteger();
+
+        $x_length = count($x->value);
+        for ($i = 0; $i < $x_length; $i++) {
+            $result->value[] = $this->value[$i] ^ $x->value[$i];
+        }
+
+        return $result->_normalize();
+    }
+
+    /**
+     * Logical Not
+     *
+     * Although integers can be converted to and from various bases with relative ease, there is one piece
+     * of information that is lost during such conversions.  The number of leading zeros that number had
+     * or should have in any given base.  Per that, if you convert 1 from decimal to binary, there's no
+     * way to know just how many leading zero's there should be.  In truth, there could be any number.
+     *
+     * Normally, the number of leading zero's is unimportant.  When doing "not", however, it is.  The "not"
+     * of 1 on an 8-bit representation of 1 is 1111 1110.  The "not" of 1 on a 16-bit representation of 1 is
+     * 1111 1111 1111 1110.  When doing it on a number that's preceeded by an infinite number of zero's, it's
+     * infinite.
+     *
+     * This function assumes that there are no leading zero's - that the bit-representation being used is
+     * equal to the minimum number of required bits, unless otherwise specified in the optional parameter,
+     * where the optional parameter represents the bit-representation being used.  If the specified
+     * bit-representation is smaller than the minimum number of bits required to represent the number, the
+     * latter will be used as the bit-representation.
+     *
+     * @param $bits Integer
+     * @access public
+     * @internal Implemented per a request by Lluis Pamies i Juarez <lluis _a_ pamies.cat>
+     * @return Math_BigInteger
+     */
+    function bitwise_not($bits = -1)
+    {
+        // calculuate "not" without regard to $bits
+        $temp = ~$this->toBytes();
+        $msb = decbin(ord($temp{0}));
+        $msb = substr($msb, strpos($msb, '0'));
+        $temp{0} = chr(bindec($msb));
+
+        // see if we need to add extra leading 1's
+        $current_bits = strlen($msb) + 8 * strlen($temp) - 8;
+        $new_bits = $bits - $current_bits;
+        if ($new_bits <= 0) {
+            return new Math_BigInteger($temp, 256);
+        }
+
+        // generate as many leading 1's as we need to.
+        $leading_ones = chr((1 << ($new_bits & 0x7)) - 1) . str_repeat(chr(0xFF), $new_bits >> 3);
+        $this->_base256_lshift($leading_ones, $current_bits);
+
+        $temp = str_pad($temp, ceil($bits / 8), chr(0), STR_PAD_LEFT);
+
+        return new Math_BigInteger($leading_ones | $temp, 256);
     }
 
     /**
