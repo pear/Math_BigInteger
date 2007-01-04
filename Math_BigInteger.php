@@ -204,12 +204,11 @@ class Math_BigInteger {
                     define('MATH_BIGINTEGER_MODE', MATH_BIGINTEGER_MODE_BCMATH);
                     break;
                 default:
-                    $this->value = array();
                     define('MATH_BIGINTEGER_MODE', MATH_BIGINTEGER_MODE_INTERNAL);
             }
         }
 
-        switch (MATH_BIGINTEGER_MODE) {
+        switch ( MATH_BIGINTEGER_MODE ) {
             case MATH_BIGINTEGER_MODE_GMP:
                 $this->value = gmp_init(0);
                 break;
@@ -226,7 +225,7 @@ class Math_BigInteger {
 
         switch ($base) {
             case 256:
-                switch (MATH_BIGINTEGER_MODE) {
+                switch ( MATH_BIGINTEGER_MODE ) {
                     case MATH_BIGINTEGER_MODE_GMP:
                         $temp = unpack('H*hex', $x);
                         $this->value = gmp_init('0x' . $temp['hex']);
@@ -258,7 +257,7 @@ class Math_BigInteger {
 
                 $x = preg_replace('#^(?:0x)?([A-Fa-f0-9]*).*#', '$1', $x);
 
-                switch (MATH_BIGINTEGER_MODE) {
+                switch ( MATH_BIGINTEGER_MODE ) {
                     case MATH_BIGINTEGER_MODE_GMP:
                         $temp = $this->is_negative ? '-0x' . $x : '0x' . $x;
                         $this->value = gmp_init($temp);
@@ -279,7 +278,7 @@ class Math_BigInteger {
             case 10:
                 $x = preg_replace('#^(-?[0-9]*).*#','$1',$x);
 
-                switch (MATH_BIGINTEGER_MODE) {
+                switch ( MATH_BIGINTEGER_MODE ) {
                     case MATH_BIGINTEGER_MODE_GMP:
                         $this->value = gmp_init($x);
                         break;
@@ -672,7 +671,7 @@ class Math_BigInteger {
      */
     function multiply($x)
     {
-        switch (MATH_BIGINTEGER_MODE ) {
+        switch ( MATH_BIGINTEGER_MODE ) {
             case MATH_BIGINTEGER_MODE_GMP:
                 $temp = new Math_BigInteger();
                 $temp->value = gmp_mul($this->value, $x->value);
@@ -1102,7 +1101,7 @@ class Math_BigInteger {
 
         $e_length = count($e->value) - 1;
         $e_bits = decbin($e->value[$e_length]);
-        for ($i = $e_length - 1; $i >= 1; $i--) {
+        for ($i = $e_length - 1; $i >= 0; $i--) {
             $e_bits.= str_pad(decbin($e->value[$i]), 26, '0', STR_PAD_LEFT);
         }
         $e_length = strlen($e_bits);
