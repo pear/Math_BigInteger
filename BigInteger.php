@@ -1339,19 +1339,27 @@ class Math_BigInteger {
      *
      * {@link http://www-cs-students.stanford.edu/~tjw/jsbn/jsbn.js}
      *
+     * The following URL provides more info:
+     *
+     * {@link http://groups.google.com/group/sci.crypt/msg/7a137205c1be7d85}
+     *
      * @see _montgomery()
      * @access private
      * @return Integer
      */
     function _modInverse67108864() // 2**26 == 67108864
     {
+        static $modulos = array(0xF, 0xFF, 0xFFFF, 0x3FFFFFF);
+
         // remove the negative sign to make this function return the true multiplicative inverse
         $x = -$this->value[0];
         $result = $x & 0x3; // x^-1 mod 2^2
-        $result = ($result * (2 - ($x & 0xF) * $result)) & 0xF; // x^-1 mod 2^4
-        $result = ($result * (2 - ($x & 0xFF) * $result)) & 0xFF; // x^-1 mod 2^8
-        $result = ($result * (2 - ((($x & 0xFFFF) * $result) & 0xFFFF))) & 0xFFFF; // x^-1 mod 2^16
-        $result = ($result * (2 - ((($x & 0x3FFFFFF) * $result) & 0x3FFFFFF))) & 0x3FFFFFF; // x^-1 mod 2^26
+
+        for ($i = 0; $i < 4; $i++) {
+            $n = $modulos[$i];
+            $result = ($result * ((2 - ((($x & $n) * $result) & $n)) & $n)) & $n;
+        }
+
         return $result;
     }
 

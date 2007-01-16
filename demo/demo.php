@@ -4,7 +4,7 @@
 
 // bcpowmod is included with Math_BigInteger.php via PHP_Compat.
 
-include('../Math_BigInteger.php');
+include('../BigInteger.php');
 
 $x = mt_rand(1,10000000);
 $y = mt_rand(1,10000000);

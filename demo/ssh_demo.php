@@ -10,10 +10,10 @@
 
 // bcpowmod is included with Math_BigInteger.php via PHP_Compat.
 
-include('../Math_BigInteger.php');
+include('../BigInteger.php');
 define('SSH_SMSG_PUBLIC_KEY',2);
 
-//define('MATH_BIGINTEGER_MODE',MATH_BIGINTEGER_MODE_INTERNAL);
+define('MATH_BIGINTEGER_MODE',MATH_BIGINTEGER_MODE_INTERNAL);
 
 error_reporting(E_STRICT);
 
