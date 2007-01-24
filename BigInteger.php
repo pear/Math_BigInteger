@@ -740,8 +740,8 @@ class Math_BigInteger {
      * Squares a BigInteger
      *
      * Squaring can be done faster than multiplying a number by itself can be.  See
-     * {@link http://www.cacr.math.uwaterloo.ca/hac/about/chap14.pdf HAC 14.2.4} /
-     * {@link http://math.libtomcrypt.com/files/tommath.pdf MPM 5.3} for more information.
+     * {@link http://www.cacr.math.uwaterloo.ca/hac/about/chap14.pdf#page=7 HAC 14.2.4} /
+     * {@link http://math.libtomcrypt.com/files/tommath.pdf#page=141 MPM 5.3} for more information.
      *
      * @return Math_BigInteger
      * @access private
@@ -804,7 +804,7 @@ class Math_BigInteger {
      * @param Math_BigInteger $y
      * @return Array
      * @access public
-     * @internal This function is based off of {@link http://www.cacr.math.uwaterloo.ca/hac/about/chap14.pdf HAC 14.20}
+     * @internal This function is based off of {@link http://www.cacr.math.uwaterloo.ca/hac/about/chap14.pdf#page=9 HAC 14.20}
      *    with a slight variation due to the fact that this script, initially, did not support negative numbers.  Now,
      *    it does, but I don't want to change that which already works.
      */
@@ -1081,8 +1081,8 @@ class Math_BigInteger {
     /**
      * Sliding Window k-ary Modular Exponentiation
      *
-     * Based on {@link http://www.cacr.math.uwaterloo.ca/hac/about/chap14.pdf HAC 14.85} /
-     * {@link http://math.libtomcrypt.com/files/tommath.pdf MPM 7.7}.  In a departure from those algorithims,
+     * Based on {@link http://www.cacr.math.uwaterloo.ca/hac/about/chap14.pdf#page=27 HAC 14.85} /
+     * {@link http://math.libtomcrypt.com/files/tommath.pdf#page=210 MPM 7.7}.  In a departure from those algorithims,
      * however, this function performs a modular reduction after every multiplication and squaring operation.
      * As such, this function has the same preconditions that the reductions being used do.
      *
@@ -1202,7 +1202,7 @@ class Math_BigInteger {
     /**
      * Modulos for Powers of Two
      *
-     * Calculates $x%$n, where $n = 2^$e, for some $e.  Since this is basically the same as doing $x & ($n-1),
+     * Calculates $x%$n, where $n = 2**$e, for some $e.  Since this is basically the same as doing $x & ($n-1),
      * we'll just use this function as a wrapper for doing that.
      *
      * @see _slidingWindow()
@@ -1220,8 +1220,8 @@ class Math_BigInteger {
     /**
      * Barrett Modular Reduction
      *
-     * See {@link http://www.cacr.math.uwaterloo.ca/hac/about/chap14.pdf HAC 14.3.3} /
-     * {@link http://math.libtomcrypt.com/files/tommath.pdf MPM 6.2.5} for more information.  Modified slightly,
+     * See {@link http://www.cacr.math.uwaterloo.ca/hac/about/chap14.pdf#page=14 HAC 14.3.3} /
+     * {@link http://math.libtomcrypt.com/files/tommath.pdf#page=165 MPM 6.2.5} for more information.  Modified slightly,
      * so as not to require negative numbers (initially, this script didn't support negative numbers).
      *
      * @see _slidingWindow()
@@ -1272,7 +1272,7 @@ class Math_BigInteger {
      * Montgomery Modular Reduction
      *
      * ($this->_montgomery($n))->_undoMontgomery($n) yields $x%$n.
-     * {@link http://math.libtomcrypt.com/files/tommath.pdf MPM 6.3} provides insights on how this can be
+     * {@link http://math.libtomcrypt.com/files/tommath.pdf#page=170 MPM 6.3} provides insights on how this can be
      * improved upon (basically, by using the comba method).  gcd($n, 2) must be equal to one for this function
      * to work correctly.
      *
@@ -1343,24 +1343,29 @@ class Math_BigInteger {
      *
      * {@link http://groups.google.com/group/sci.crypt/msg/7a137205c1be7d85}
      *
+     * As for why we do all the bitmasking...  strange things can happen when converting from flots to ints. For
+     * instance, on some computers, var_dump((int) -4294967297) yields int(-1) and on others, it yields 
+     * int(-2147483648).  To avoid problems stemming from this, we use bitmasks to guarntee that ints aren't
+     * auto-converted to floats.  The outermost bitmask is present because without it, there's no guarantee that
+     * the "residue" returned would be the so-called "common residue".  We use fmod, in the last step, because the
+     * maximum possible $x is 26 bits and the maximum $result is 16 bits.  Thus, we have to be able to handle up to
+     * 40 bits, which only 64-bit floating points will support.
+     *
+     * Thanks to Pedro Gimeno Fortea for input!
+     *
      * @see _montgomery()
      * @access private
      * @return Integer
      */
     function _modInverse67108864() // 2**26 == 67108864
     {
-        static $modulos = array(0xF, 0xFF, 0xFFFF, 0x3FFFFFF);
-
-        // remove the negative sign to make this function return the true multiplicative inverse
         $x = -$this->value[0];
-        $result = $x & 0x3; // x^-1 mod 2^2
-
-        for ($i = 0; $i < 4; $i++) {
-            $n = $modulos[$i];
-            $result = ($result * ((2 - ((($x & $n) * $result) & $n)) & $n)) & $n;
-        }
-
-        return $result;
+        $result = $x & 0x3; // x**-1 mod 2**2
+        $result = ($result * (2 - $x * $result)) & 0xF; // x**-1 mod 2**4
+        $result = ($result * (2 - ($x & 0xFF) * $result))  & 0xFF; // x**-1 mod 2**8
+        $result = ($result * ((2 - ($x & 0xFFFF) * $result) & 0xFFFF)) & 0xFFFF; // x**-1 mod 2**16
+        $result = fmod($result * (2 - fmod($x * $result, 0x4000000)), 0x4000000); // x**-1 mod 2**26
+        return $result & 0x3FFFFFF;
     }
 
     /**
@@ -1384,9 +1389,9 @@ class Math_BigInteger {
      * @return mixed false, if no modular inverse exists, Math_BigInteger, otherwise.
      * @access public
      * @internal Calculates the modular inverse of $this mod $n using the binary xGCD algorithim described in
-     *    {@link http://www.cacr.math.uwaterloo.ca/hac/about/chap14.pdf HAC 14.61}.  As the text above 14.61 notes,
+     *    {@link http://www.cacr.math.uwaterloo.ca/hac/about/chap14.pdf#page=19 HAC 14.61}.  As the text above 14.61 notes,
      *    the more traditional algorithim requires "relatively costly multiple-precision divisions".  See
-     *    {@link http://www.cacr.math.uwaterloo.ca/hac/about/chap14.pdf HAC 14.64} for more information.
+     *    {@link http://www.cacr.math.uwaterloo.ca/hac/about/chap14.pdf#page=21 HAC 14.64} for more information.
      */
     function modInverse($n)
     {
