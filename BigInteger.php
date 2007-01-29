@@ -38,7 +38,7 @@
  * Here's a quick 'n dirty example of how to use this library:
  * <code>
  * <?php
- *    include('Math_BigInteger.php');
+ *    include('Math/BigInteger.php');
  *
  *    $a = new Math_BigInteger(2);
  *    $b = new Math_BigInteger(3);
@@ -180,7 +180,7 @@ class Math_BigInteger {
      * Here's a quick 'n dirty example:
      * <code>
      * <?php
-     *    include('Math_BigInteger.php');
+     *    include('Math/BigInteger.php');
      *
      *    $a = new Math_BigInteger('0x32', 16); // 50 in base-16
      *
@@ -351,7 +351,7 @@ class Math_BigInteger {
      * Here's a quick 'n dirty example:
      * <code>
      * <?php
-     *    include('Math_BigInteger.php');
+     *    include('Math/BigInteger.php');
      *
      *    $a = new Math_BigInteger('65');
      *
@@ -416,7 +416,7 @@ class Math_BigInteger {
      * Here's a quick 'n dirty example:
      * <code>
      * <?php
-     *    include('Math_BigInteger.php');
+     *    include('Math/BigInteger.php');
      *
      *    $a = new Math_BigInteger('50');
      *
@@ -466,7 +466,7 @@ class Math_BigInteger {
      * Here's a quick 'n dirty example:
      * <code>
      * <?php
-     *    include('Math_BigInteger.php');
+     *    include('Math/BigInteger.php');
      *
      *    $a = new Math_BigInteger('10');
      *    $b = new Math_BigInteger('20');
@@ -534,7 +534,7 @@ class Math_BigInteger {
 
             $temp = floor($sum / 0x4000000);
 
-            $result->value[] = $sum - 0x4000000 * $temp; // eg. a faster alternative to fmod($sum,0x4000000)
+            $result->value[] = $sum - 0x4000000 * $temp; // eg. a faster alternative to fmod($sum, 0x4000000)
             $result->value[] = $temp;
         }
 
@@ -553,7 +553,7 @@ class Math_BigInteger {
      * Here's a quick 'n dirty example:
      * <code>
      * <?php
-     *    include('Math_BigInteger.php');
+     *    include('Math/BigInteger.php');
      *
      *    $a = new Math_BigInteger('10');
      *    $b = new Math_BigInteger('20');
@@ -653,7 +653,7 @@ class Math_BigInteger {
      * Here's a quick 'n dirty example:
      * <code>
      * <?php
-     *    include('Math_BigInteger.php');
+     *    include('Math/BigInteger.php');
      *
      *    $a = new Math_BigInteger('10');
      *    $b = new Math_BigInteger('20');
@@ -788,7 +788,7 @@ class Math_BigInteger {
      * Here's a quick 'n dirty example:
      * <code>
      * <?php
-     *    include('Math_BigInteger.php');
+     *    include('Math/BigInteger.php');
      *
      *    $a = new Math_BigInteger('10');
      *    $b = new Math_BigInteger('20');
@@ -889,26 +889,37 @@ class Math_BigInteger {
         }
 
         for ($i = $x_max; $i >= $y_max + 1; $i--) {
+            $x_value = array(
+                $x->value[$i],
+                ( $i > 0 ) ? $x->value[$i - 1] : 0,
+                ( $i - 1 > 0 ) ? $x->value[$i - 2] : 0
+            );
+            $y_value = array(
+                $y->value[$y_max],
+                ( $y_max > 0 ) ? $y_max - 1 : 0
+            );
+
+
             $q_index = $i - $y_max - 1;
-            if ($x->value[$i] == $y->value[$y_max]) {
+            if ($x_value[0] == $y_value[0]) {
                 $quotient->value[$q_index] = 0x3FFFFFF;
             } else {
                 $quotient->value[$q_index] = floor(
-                    ($x->value[$i] * 0x4000000 + $x->value[$i - 1])
+                    ($x_value[0] * 0x4000000 + $x_value[1])
                     /
-                    $y->value[$y_max]
+                    $y_value[0]
                 );
             }
 
             $temp = new Math_BigInteger();
-            $temp->value = array($y->value[$y_max - 1], $y->value[$y_max]);
+            $temp->value = array($y_value[1], $y_value[0]);
 
             $lhs = new Math_BigInteger();
             $lhs->value = array($quotient->value[$q_index]);
             $lhs = $lhs->multiply($temp);
 
             $rhs = new Math_BigInteger();
-            $rhs->value = array($x->value[$i - 2], $x->value[$i - 1], $x->value[$i]);
+            $rhs->value = array($x_value[2], $x_value[1], $x_value[0]);
             
             while ( $lhs->compare($rhs) > 0 ) {
                 $quotient->value[$q_index]--;
@@ -932,7 +943,7 @@ class Math_BigInteger {
             }
 
             $x = $x->subtract($temp);
-            $x_max = count($x->value)-1;
+            $x_max = count($x->value) - 1;
         }
 
         // unnormalize the remainder
@@ -955,7 +966,7 @@ class Math_BigInteger {
      * Here's a quick 'n dirty example:
      * <code>
      * <?php
-     *    include('Math_BigInteger.php');
+     *    include('Math/BigInteger.php');
      *
      *    $a = new Math_BigInteger('10');
      *    $b = new Math_BigInteger('20');
@@ -1374,7 +1385,7 @@ class Math_BigInteger {
      * Here's a quick 'n dirty example:
      * <code>
      * <?php
-     *    include('Math_BigInteger.php');
+     *    include('Math/BigInteger.php');
      *
      *    $a = new Math_BigInteger(30);
      *    $b = new Math_BigInteger(17);
