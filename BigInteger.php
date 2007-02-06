@@ -132,19 +132,19 @@ define('MATH_BIGINTEGER_DATA', 1);
 /**
  * To use the pure-PHP implementation
  */
-define('MATH_BIGINTEGER_MODE_INTERNAL',1);
+define('MATH_BIGINTEGER_MODE_INTERNAL', 1);
 /**
  * To use the BCMath library
  *
  * (if enabled; otherwise, the internal implementation will be used)
  */
-define('MATH_BIGINTEGER_MODE_BCMATH',2);
+define('MATH_BIGINTEGER_MODE_BCMATH', 2);
 /**
  * To use the GMP library
  *
  * (if present; otherwise, either the BCMath or the internal implementation will be used)
  */
-define('MATH_BIGINTEGER_MODE_GMP',3);
+define('MATH_BIGINTEGER_MODE_GMP', 3);
 /**#@-*/
 
 /**
@@ -153,7 +153,7 @@ define('MATH_BIGINTEGER_MODE_GMP',3);
  * and modInverse.
  *
  * @author  Jim Wigginton <terrafrost@php.net>
- * @version 1.0.0RC2
+ * @version 1.0.0RC3
  * @access  public
  * @package Math_BigInteger
  */

@@ -10,12 +10,13 @@
 
 // bcpowmod is included with Math_BigInteger.php via PHP_Compat.
 
-include('../BigInteger.php');
+include('../Math/BigInteger.php');
 define('SSH_SMSG_PUBLIC_KEY',2);
 
 define('MATH_BIGINTEGER_MODE',MATH_BIGINTEGER_MODE_INTERNAL);
 
-error_reporting(E_STRICT);
+//error_reporting(E_STRICT);
+error_reporting(E_ALL);
 
 // if shell.sourceforge.net doesn't work for you, try another domain name.
 ssh1_connect('shell.sourceforge.net',22);
@@ -73,6 +74,7 @@ function ssh1_connect($host,$port) {
     }
     $double_encrypted_session_key = $session_key ^ str_pad($session_id,32,chr(0));
 
+    echo "starting rsa encryption\r\n\r\n";
     if ($server_key_public_modulus->compare($host_key_public_modulus) < 0) {
         $prepped_key = prep_session_key($double_encrypted_session_key,$server_key_public_modulus);
         rsa_crypt(
