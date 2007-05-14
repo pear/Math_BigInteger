@@ -1925,7 +1925,8 @@ class Math_BigInteger {
 
         $remainder = '';
         if ($num_bytes) {
-            $remainder = substr($x, -$num_bytes);
+            $start = $num_bytes > strlen($x) ? -strlen($x) : -$num_bytes;
+            $remainder = substr($x, $start);
             $x = substr($x, 0, -$num_bytes);
         }
 
