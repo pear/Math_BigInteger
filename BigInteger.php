@@ -1307,12 +1307,9 @@ class Math_BigInteger {
         $n_length = count($n->value);
 
         for ($i = 0; $i < $n_length; $i++) {
-            $digit = $result->value[$i] * $cache[MATH_BIGINTEGER_DATA];
             $temp = new Math_BigInteger();
             $temp->value = array(
-                //$digit - floor($digit / 0x4000000) * 0x4000000
-                //$digit - ($digit & 0xFC000000)
-                $digit & 0x3FFFFFF
+                ($result->value[$i] * $cache[MATH_BIGINTEGER_DATA]) & 0x3FFFFFF
             );
             $temp = $temp->multiply($n);
             $temp->value = array_merge($this->_array_repeat(0, $i), $temp->value);
