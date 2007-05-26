@@ -231,8 +231,8 @@ class Math_BigInteger {
                         $this->value = gmp_init('0x' . $temp['hex']);
                         break;
                     case MATH_BIGINTEGER_MODE_BCMATH:
-                        $len = strlen($x);
-                        $len+= (3 * $len) % 4; // rounds $len to the nearest 4.
+                        // round $len to the nearest 4 (thanks, DavidMJ!)
+                        $len = (strlen($x) + 3) & 0xFFFFFFFC;
 
                         $x = str_pad($x, $len, chr(0), STR_PAD_LEFT);
 
@@ -522,7 +522,7 @@ class Math_BigInteger {
         $carry = 0;
 
         $size = max(count($this->value), count($y->value));
-        $size+= $size % 2; // rounds $size to the nearest 2.
+        $size+= $size & 1; // rounds $size to the nearest 2.
 
         $x = array_pad($this->value, $size,0);
         $y = array_pad($y->value, $size, 0);
@@ -1310,7 +1310,9 @@ class Math_BigInteger {
             $digit = $result->value[$i] * $cache[MATH_BIGINTEGER_DATA];
             $temp = new Math_BigInteger();
             $temp->value = array(
-                $digit - floor($digit / 0x4000000) * 0x4000000
+                //$digit - floor($digit / 0x4000000) * 0x4000000
+                //$digit - ($digit & 0xFC000000)
+                $digit & 0x3FFFFFF
             );
             $temp = $temp->multiply($n);
             $temp->value = array_merge($this->_array_repeat(0, $i), $temp->value);
