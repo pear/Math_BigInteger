@@ -149,8 +149,7 @@ define('MATH_BIGINTEGER_MODE_GMP', 3);
 
 /**
  * Pure-PHP arbitrary precission integer arithmetic library. Supports base-2, base-10, base-16, and base-256
- * numbers.  Negative numbers are supported in all publically accessable functions save for modPow
- * and modInverse.
+ * numbers.
  *
  * @author  Jim Wigginton <terrafrost@php.net>
  * @version 1.0.0RC3
@@ -176,6 +175,9 @@ class Math_BigInteger {
 
     /**
      * Converts base-2, base-10, base-16, and binary strings (eg. base-256) to BigIntegers.
+     *
+     * If the second parameter - $base - is negative, then it will be assumed that the number's are encoded using
+     * two's compliment.  The sole exception to this is -10, which is treated the same as 10 is.
      *
      * Here's a quick 'n dirty example:
      * <code>
@@ -224,11 +226,17 @@ class Math_BigInteger {
         }
 
         switch ($base) {
-            case 256:
+            case -256:
+                if (ord($x[0]) & 0x80) {
+                    $x = ~$x;
+                    $this->is_negative = true;
+                }
+            case  256:
                 switch ( MATH_BIGINTEGER_MODE ) {
                     case MATH_BIGINTEGER_MODE_GMP:
                         $temp = unpack('H*hex', $x);
-                        $this->value = gmp_init('0x' . $temp['hex']);
+                        $sign = $this->is_negative ? '-' : '';
+                        $this->value = gmp_init($sign . '0x' . $temp['hex']);
                         break;
                     case MATH_BIGINTEGER_MODE_BCMATH:
                         // round $len to the nearest 4 (thanks, DavidMJ!)
@@ -238,7 +246,11 @@ class Math_BigInteger {
 
                         for ($i = 0; $i < $len; $i+= 4) {
                             $this->value = bcmul($this->value, '4294967296'); // 4294967296 == 2**32
-                            $this->value = bcadd($this->value, 0x1000000 * ord($x{$i}) + ((ord($x{$i + 1}) << 16) | (ord($x{$i + 2}) << 8) | ord($x{$i + 3})));
+                            $this->value = bcadd($this->value, 0x1000000 * ord($x[$i]) + ((ord($x[$i + 1]) << 16) | (ord($x[$i + 2]) << 8) | ord($x[$i + 3])));
+                        }
+
+                        if ($this->is_negative) {
+                            $this->value = '-' . $this->value;
                         }
 
                         break;
@@ -248,14 +260,29 @@ class Math_BigInteger {
                             $this->value[] = $this->_bytes2int($this->_base256_rshift($x, 26));
                         }
                 }
+
+                if ($this->is_negative) {
+                    if (MATH_BIGINTEGER_MODE != MATH_BIGINTEGER_MODE_INTERNAL) {
+                        $this->is_negative = false;
+                    }
+                    $temp = $this->add(new Math_BigInteger('-1'));
+                    $this->value = $temp->value;
+                }
                 break;
-            case 16:
-                if ($x{0} == '-') {
+            case  16:
+            case -16:
+                if ($base > 0 && $x[0] == '-') {
                     $this->is_negative = true;
                     $x = substr($x, 1);
                 }
 
                 $x = preg_replace('#^(?:0x)?([A-Fa-f0-9]*).*#', '$1', $x);
+
+                $is_negative = false;
+                if ($base < 0 && hexdec($x[0]) >= 8) {
+                    $this->is_negative = $is_negative = true;
+                    $x = bin2hex(~pack('H*', $x));
+                }
 
                 switch ( MATH_BIGINTEGER_MODE ) {
                     case MATH_BIGINTEGER_MODE_GMP:
@@ -274,17 +301,23 @@ class Math_BigInteger {
                         $temp = new Math_BigInteger(pack('H*', $x), 256);
                         $this->value = $temp->value;
                 }
+
+                if ($is_negative) {
+                    $temp = $this->add(new Math_BigInteger('-1'));
+                    $this->value = $temp->value;
+                }
                 break;
-            case 10:
-                $x = preg_replace('#^(-?[0-9]*).*#','$1',$x);
+            case  10:
+            case -10:
+                $x = preg_replace('#^(-?[0-9]*).*#', '$1', $x);
 
                 switch ( MATH_BIGINTEGER_MODE ) {
                     case MATH_BIGINTEGER_MODE_GMP:
                         $this->value = gmp_init($x);
                         break;
                     case MATH_BIGINTEGER_MODE_BCMATH:
-                        // explicitly casting $x to a string is necessary, here, since doing $x{0} on -1 yields different
-                        // results then doing it on '-1' does (modInverse does $x{0})
+                        // explicitly casting $x to a string is necessary, here, since doing $x[0] on -1 yields different
+                        // results then doing it on '-1' does (modInverse does $x[0])
                         $this->value = (string) $x;
                         break;
                     case MATH_BIGINTEGER_MODE_INTERNAL:
@@ -294,7 +327,7 @@ class Math_BigInteger {
                         $multiplier = new Math_BigInteger();
                         $multiplier->value = array(10000000);
 
-                        if ($x{0} == '-') {
+                        if ($x[0] == '-') {
                             $this->is_negative = true;
                             $x = substr($x, 1);
                         }
@@ -310,13 +343,9 @@ class Math_BigInteger {
                         $this->value = $temp->value;
                 }
                 break;
-            case 2: // base-2 support originally implemented by Lluis Pamies - thanks!
-                if (MATH_BIGINTEGER_MODE == MATH_BIGINTEGER_MODE_GMP) {
-                    $this->value = gmp_init($x, 2);
-                    break;
-                }
-
-                if ($x{0} == '-') {
+            case  2: // base-2 support originally implemented by Lluis Pamies - thanks!
+            case -2:
+                if ($base > 0 && $x[0] == '-') {
                     $this->is_negative = true;
                     $x = substr($x, 1);
                 }
@@ -331,13 +360,13 @@ class Math_BigInteger {
                    $x = substr($x, 4);
                 }
 
-                $temp = new Math_BigInteger($str, 16);
-                $this->value = $temp->value;
-
-                if (MATH_BINGINTEGER_MODE == MATH_BIGINTEGER_MODE_BCMATH && $this->is_negative) {
-                    $this->value = '-' . $this->value;
-                    $this->is_negative = false;
+                if ($this->is_negative) {
+                    $str = '-' . $str;
                 }
+
+                $temp = new Math_BigInteger($str, 8 * $base); // ie. either -16 or +16
+                $this->value = $temp->value;
+                $this->is_negative = $temp->is_negative;
 
                 break;
             default:
@@ -347,6 +376,9 @@ class Math_BigInteger {
 
     /**
      * Converts a BigInteger to a byte string (eg. base-256).
+     *
+     * Negative numbers are saved as positive numbers, unless $twos_compliment is set to true, at which point, they're
+     * saved as two's compliment.
      *
      * Here's a quick 'n dirty example:
      * <code>
@@ -359,12 +391,33 @@ class Math_BigInteger {
      * ?>
      * </code>
      *
+     * @param Boolean $twos_compliment
      * @return String
      * @access public
      * @internal Converts a base-2**26 number to base-2**8
      */
-    function toBytes()
+    function toBytes($twos_compliment = false)
     {
+        if ($twos_compliment) {
+            $comparison = $this->compare(new Math_BigInteger());
+            if ($comparison == 0) {
+                return '';
+            }
+
+            $temp = $comparison < 0 ? $this->add(new Math_BigInteger(1)) : $this->_copy();
+            $bytes = $temp->toBytes();
+
+            if (empty($bytes)) { // eg. if the number we're trying to convert is -1
+                $bytes = chr(0);
+            }
+
+            if (ord($bytes[0]) & 0x80) {
+                $bytes = chr(0) . $bytes;
+            }
+
+            return $comparison < 0 ? ~$bytes : $bytes;
+        }
+
         switch ( MATH_BIGINTEGER_MODE ) {
             case MATH_BIGINTEGER_MODE_GMP:
                 if (gmp_cmp($this->value, gmp_init(0)) == 0) {
@@ -381,7 +434,11 @@ class Math_BigInteger {
                 }
 
                 $value = '';
-                $current = $this->value;                 
+                $current = $this->value;
+
+                if ($current[0] == '-') {
+                    $current = substr($current, 1);
+                }
 
                 // we don't do four bytes at a time because then numbers larger than 1<<31 would be negative
                 // two's complimented numbers, which would break chr.
@@ -445,19 +502,22 @@ class Math_BigInteger {
             return '0';
         }
 
-        $result = ($this->is_negative) ? '-' : '';
-
         $temp = $this->_copy();
+        $temp->is_negative = false;
 
         $divisor = new Math_BigInteger();
         $divisor->value = array(10000000); // eg. 10**7
-
         while (count($temp->value)) {
             list($temp, $mod) = $temp->divide($divisor);
             $result = str_pad($this->_bytes2int($mod->toBytes()), 7, '0', STR_PAD_LEFT) . $result;
         }
+        $result = ltrim($result, '0');
 
-        return ltrim($result, '0');
+        if ($this->is_negative) {
+            $result = '-' . $result;
+        }
+
+        return $result;
     }
 
     /**
@@ -783,7 +843,7 @@ class Math_BigInteger {
      * Returns an array whose first element contains the quotient and whose second element contains the
      * "common residue".  If the remainder would be positive, the "common residue" and the remainder are the
      * same.  If the remainder would be negative, the "common residue" is equal to the sum of the remainder
-     * and the divisor.
+     * and the divisor (basically, the "common residue" is the first positive modulo).
      *
      * Here's a quick 'n dirty example:
      * <code>
@@ -793,7 +853,7 @@ class Math_BigInteger {
      *    $a = new Math_BigInteger('10');
      *    $b = new Math_BigInteger('20');
      *
-     *    list($quotient,$remainder) = $a->divide($b);
+     *    list($quotient, $remainder) = $a->divide($b);
      *
      *    echo $quotient->toString(); // outputs 0
      *    echo "\r\n";
@@ -829,8 +889,8 @@ class Math_BigInteger {
                 $quotient->value = bcdiv($this->value, $y->value);
                 $remainder->value = bcmod($this->value, $y->value);
 
-                if ($remainder->value{0} == '-') {
-                    $remainder->value = bcadd($remainder->value, $y->value{0} == '-' ? substr($y->value,1) : $y->value);
+                if ($remainder->value[0] == '-') {
+                    $remainder->value = bcadd($remainder->value, $y->value[0] == '-' ? substr($y->value, 1) : $y->value);
                 }
 
                 return array($quotient, $remainder);
@@ -1023,10 +1083,8 @@ class Math_BigInteger {
 
                 return $temp;
             case MATH_BIGINTEGER_MODE_BCMATH:
-                // even though the last parameter is optional, according to php.net, it's not optional in
-                // PHP_Compat 1.5.0 when running PHP 4.
                 $temp = new Math_BigInteger();
-                $temp->value = bcpowmod($this->value, $e->value, $n->value, 0);
+                $temp->value = bcpowmod($this->value, $e->value, $n->value);
 
                 return $temp;
         }
@@ -1745,9 +1803,9 @@ class Math_BigInteger {
     {
         // calculuate "not" without regard to $bits
         $temp = ~$this->toBytes();
-        $msb = decbin(ord($temp{0}));
+        $msb = decbin(ord($temp[0]));
         $msb = substr($msb, strpos($msb, '0'));
-        $temp{0} = chr(bindec($msb));
+        $temp[0] = chr(bindec($msb));
 
         // see if we need to add extra leading 1's
         $current_bits = strlen($msb) + 8 * strlen($temp) - 8;
@@ -1766,12 +1824,148 @@ class Math_BigInteger {
     }
 
     /**
+     * Logical Right Shift
+     *
+     * Shifts BigInteger's by $shift bits, effectively dividing by 2**$shift.
+     *
+     * @param Integer $shift
+     * @return Math_BigInteger
+     * @access public
+     * @internal The only version that yields any speed increases is the internal version.
+     */
+    function bitwise_rightShift($shift)
+    {
+        $temp = new Math_BigInteger();
+
+        switch ( MATH_BIGINTEGER_MODE ) {
+            case MATH_BIGINTEGER_MODE_GMP:
+                static $two;
+
+                if (empty($two)) {
+                    $two = gmp_init('2');
+                }
+
+                $temp->value = gmp_div_q($this->value, gmp_pow($two, $shift));
+
+                break;
+            case MATH_BIGINTEGER_MODE_BCMATH:
+
+                $temp->value = bcdiv($this->value, bcpow('2', $shift));
+
+                break;
+            default: // could just replace _lshift with this, but then all _lshift() calls would need to be rewritten
+                     // and I don't want to do that...
+                $temp->value = $this->value;
+                $temp->_rshift($shift);
+        }
+
+        return $temp;
+    }
+
+    /**
+     * Logical Left Shift
+     *
+     * Shifts BigInteger's by $shift bits, effectively multiplying by 2**$shift.
+     *
+     * @param Integer $shift
+     * @return Math_BigInteger
+     * @access public
+     * @internal The only version that yields any speed increases is the internal version.
+     */
+    function bitwise_leftShift($shift)
+    {
+        $temp = new Math_BigInteger();
+
+        switch ( MATH_BIGINTEGER_MODE ) {
+            case MATH_BIGINTEGER_MODE_GMP:
+                static $two;
+
+                if (empty($two)) {
+                    $two = gmp_init('2');
+                }
+
+                $temp->value = gmp_mul($this->value, gmp_pow($two, $shift));
+
+                break;
+            case MATH_BIGINTEGER_MODE_BCMATH:
+                $temp->value = bcmul($this->value, bcpow('2', $shift));
+
+                break;
+            default: // could just replace _rshift with this, but then all _lshift() calls would need to be rewritten
+                     // and I don't want to do that...
+                $temp->value = $this->value;
+                $temp->_lshift($shift);
+        }
+
+        return $temp;
+    }
+
+    /**
+     * Generate a random number
+     *
+     * $generator should be the name of a random number generating function whose first parameter is the minimum
+     * value and whose second parameter is the maximum value.  If this function needs to be seeded, it should be
+     * done before this function is called.
+     *
+     * @param optional Integer $min
+     * @param optional Integer $max
+     * @param optional String $generator
+     * @return Math_BigInteger
+     * @access public
+     */
+    function random($min = false, $max = false, $generator = 'mt_rand')
+    {
+	if ($min === false) {
+            $min = new Math_BigInteger(0);
+        }
+
+        if ($max === false) {
+            $max = new Math_BigInteger(0x7FFFFFFF);
+        }
+
+        $compare = $max->compare($min);
+
+        if (!$compare) {
+            return $min;
+        } else if ($compare < 0) {
+            // if $min is bigger then $max, swap $min and $max
+            $temp = $max;
+            $max = $min;
+            $min = $temp;
+        }
+
+        $max = $max->subtract($min);
+        $max = ltrim($max->toBytes(), chr(0));
+        $size = strlen($max) - 1;
+
+        $bytes = $size & 3;
+        for ($i = 0; $i < $bytes; $i++) {
+            $random.= chr($generator(0, 255));
+        }
+
+        $blocks = $size >> 2;
+        for ($i = 0; $i < $blocks; $i++) {
+            $random.= pack('N', $generator(-2147483648, 0x7FFFFFFF));
+        }
+
+        $temp = new Math_BigInteger($random, 256);
+        if ($temp->compare(new Math_BigInteger(substr($max, 1), 256)) > 0) {
+            $random = chr($generator(0, ord($max[0]) - 1)) . $random;
+        } else {
+            $random = chr($generator(0, ord($max[0])    )) . $random;
+        }
+
+        $random = new Math_BigInteger($random, 256);
+
+        return $random->add($min);
+    }
+
+    /**
      * Logical Left Shift
      *
      * Shifts BigInteger's by $shift bits.
      *
      * @param Integer $shift
-     * @return String
      * @access private
      */
     function _lshift($shift)
@@ -1807,10 +2001,10 @@ class Math_BigInteger {
      * Shifts BigInteger's by $shift bits.
      *
      * @param Integer $shift
-     * @return String
      * @access private
      */
-    function _rshift($shift) {
+    function _rshift($shift)
+    {
         if ($shift == 0) {
             $this->_normalize();
         }
