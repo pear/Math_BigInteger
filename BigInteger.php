@@ -1084,7 +1084,9 @@ class Math_BigInteger {
                 return $temp;
             case MATH_BIGINTEGER_MODE_BCMATH:
                 $temp = new Math_BigInteger();
-                $temp->value = bcpowmod($this->value, $e->value, $n->value);
+                // even though the last parameter is optional, according to php.net, it's not optional in
+                // PHP_Compat 1.5.0 when running PHP 4.
+                $temp->value = bcpowmod($this->value, $e->value, $n->value, 0);
 
                 return $temp;
         }
