@@ -64,10 +64,6 @@ function ssh1_connect($host,$port) {
 
     $session_id = pack('H*',md5($host_key_public_modulus.$server_key_public_modulus.$anti_spoofing_cookie));
 
-    // ought to use a cryptographically secure random number generator (which mt_srand is not)
-    list($sec, $usec) = explode(' ', microtime());
-    mt_srand((float) $sec + ((float) $usec * 100000));
-
     $session_key = '';
     for ($i=0; $i<32; $i++) {
         $session_key .= chr(mt_rand(0,255));
