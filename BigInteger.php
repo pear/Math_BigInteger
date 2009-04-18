@@ -148,7 +148,7 @@ define('MATH_BIGINTEGER_MODE_GMP', 3);
 /**#@-*/
 
 /**
- * Pure-PHP arbitrary precission integer arithmetic library. Supports base-2, base-10, base-16, and base-256
+ * Pure-PHP arbitrary precision integer arithmetic library. Supports base-2, base-10, base-16, and base-256
  * numbers.
  *
  * @author  Jim Wigginton <terrafrost@php.net>
