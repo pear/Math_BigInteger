@@ -69,7 +69,7 @@
  * @author     Jim Wigginton <terrafrost@php.net>
  * @copyright  MMVI Jim Wigginton
  * @license    http://www.gnu.org/licenses/lgpl.txt
- * @version    CVS: $Id$
+ * @version    $Id$
  * @link       http://pear.php.net/package/Math_BigInteger
  */
 
@@ -79,9 +79,12 @@
  * {@link http://php.net/function.bcpowmod}
  */
 require_once 'PHP/Compat/Function/bcpowmod.php';
-// array_fill requires PHP 4.2.0+, per http://php.net/function.array_fill
-// see http://www.frostjedi.com/terra/scripts/pear/array_fill.phps
-// require_once 'PHP/Compat/Function/array_fill.php';
+/**
+ * Include PHP_Compat module array_fill since that function requires PHP4.2.0+:
+ * {@link http://pear.php.net/package/PHP_Compat/}
+ * {@link http://php.net/function.array_fill}
+ */
+require_once 'PHP/Compat/Function/array_fill.php';
 
 /**#@+
  * @access private
@@ -146,6 +149,13 @@ define('MATH_BIGINTEGER_MODE_BCMATH', 2);
  */
 define('MATH_BIGINTEGER_MODE_GMP', 3);
 /**#@-*/
+
+/**
+ * The largest digit that may be used in addition / subtraction
+ *
+ * @access private
+ */
+define('MATH_BIGINTEGER_MAX_DIGIT52', pow(2, 52));
 
 /**
  * Pure-PHP arbitrary precision integer arithmetic library. Supports base-2, base-10, base-16, and base-256
@@ -355,9 +365,9 @@ class Math_BigInteger {
 
                 $str = '0x';
                 while (strlen($x)) {
-                   $part = substr($x, 0, 4);
-                   $str.= dechex(bindec($part));
-                   $x = substr($x, 4);
+                    $part = substr($x, 0, 4);
+                    $str.= dechex(bindec($part));
+                    $x = substr($x, 4);
                 }
 
                 if ($this->is_negative) {
@@ -507,6 +517,7 @@ class Math_BigInteger {
 
         $divisor = new Math_BigInteger();
         $divisor->value = array(10000000); // eg. 10**7
+        $result = '';
         while (count($temp->value)) {
             list($temp, $mod) = $temp->divide($divisor);
             $result = str_pad($this->_bytes2int($mod->toBytes()), 7, '0', STR_PAD_LEFT) . $result;
@@ -518,6 +529,20 @@ class Math_BigInteger {
         }
 
         return $result;
+    }
+
+    /**
+     *  __toString() magic method
+     *
+     * Will be called, automatically, if you're supporting just PHP5.  If you're supporting PHP4, you'll need to call
+     * toString().
+     *
+     * @access public
+     * @internal Implemented per a suggestion by Techie-Michael - thanks!
+     */
+    function __toString()
+    {
+        return $this->toString();
     }
 
     /**
@@ -589,8 +614,8 @@ class Math_BigInteger {
 
         for ($i = 0; $i < $size - 1; $i+=2) {
             $sum = $x[$i + 1] * 0x4000000 + $x[$i] + $y[$i + 1] * 0x4000000 + $y[$i] + $carry;
-            $carry = $sum >= 4503599627370496; // eg. floor($sum / 2**52); only possible values (in any base) are 0 and 1
-            $sum = $carry ? $sum - 4503599627370496 : $sum;
+            $carry = $sum >= MATH_BIGINTEGER_MAX_DIGIT52; // eg. floor($sum / 2**52); only possible values (in any base) are 0 and 1
+            $sum = $carry ? $sum - MATH_BIGINTEGER_MAX_DIGIT52 : $sum;
 
             $temp = floor($sum / 0x4000000);
 
@@ -688,10 +713,10 @@ class Math_BigInteger {
         $x = array_pad($this->value, $size, 0);
         $y = array_pad($y->value, $size, 0);
 
-        for ($i = 0; $i < $size - 1;$i+=2) {
+        for ($i = 0; $i < $size - 1; $i+=2) {
             $sum = $x[$i + 1] * 0x4000000 + $x[$i] - $y[$i + 1] * 0x4000000 - $y[$i] + $carry;
             $carry = $sum < 0 ? -1 : 0; // eg. floor($sum / 2**52); only possible values (in any base) are 0 and 1
-            $sum = $carry ? $sum + 4503599627370496 : $sum;
+            $sum = $carry ? $sum + MATH_BIGINTEGER_MAX_DIGIT52 : $sum;
 
             $temp = floor($sum / 0x4000000);
 
@@ -775,7 +800,6 @@ class Math_BigInteger {
 
         $product->value[$k] = $carry;
 
-
         // the above for loop is what the previous comment was talking about.  the
         // following for loop is the "one with nested for loops"
 
@@ -812,12 +836,10 @@ class Math_BigInteger {
             return new Math_BigInteger();
         }
 
-        $max_index = count($this->value) - 1;
-
         $square = new Math_BigInteger();
-        $square->value = $this->_array_repeat(0, 2 * $max_index);
+        $square->value = $this->_array_repeat(0, 2 * count($this->value));
 
-        for ($i = 0; $i <= $max_index; $i++) {
+        for ($i = 0, $max_index = count($this->value) - 1; $i <= $max_index; $i++) {
             $temp = $square->value[2 * $i] + $this->value[$i] * $this->value[$i];
             $carry = floor($temp / 0x4000000);
             $square->value[2 * $i] = $temp - 0x4000000 * $carry;
@@ -1073,7 +1095,7 @@ class Math_BigInteger {
                 return false;
             }
 
-            return $temp->modPow($e,$n);
+            return $temp->modPow($e, $n);
         }
 
         switch ( MATH_BIGINTEGER_MODE ) {
@@ -1084,9 +1106,7 @@ class Math_BigInteger {
                 return $temp;
             case MATH_BIGINTEGER_MODE_BCMATH:
                 $temp = new Math_BigInteger();
-                // even though the last parameter is optional, according to php.net, it's not optional in
-                // PHP_Compat 1.5.0 when running PHP 4.
-                $temp->value = bcpowmod($this->value, $e->value, $n->value, 0);
+                $temp->value = bcpowmod($this->value, $e->value, $n->value);
 
                 return $temp;
         }
@@ -1157,9 +1177,6 @@ class Math_BigInteger {
      * however, this function performs a modular reduction after every multiplication and squaring operation.
      * As such, this function has the same preconditions that the reductions being used do.
      *
-     * The window size is calculated in the same fashion that the window size in BigInteger.java's oddModPow
-     * function is.
-     *
      * @param Math_BigInteger $e
      * @param Math_BigInteger $n
      * @param Integer $mode
@@ -1168,7 +1185,8 @@ class Math_BigInteger {
      */
     function _slidingWindow($e, $n, $mode)
     {
-        static $window_ranges = array(7, 25, 81, 241, 673, 1793);
+        static $window_ranges = array(7, 25, 81, 241, 673, 1793); // from BigInteger.java's oddModPow function
+        //static $window_ranges = array(0, 7, 36, 140, 450, 1303, 3529); // from MPM 7.3.1
 
         $e_length = count($e->value) - 1;
         $e_bits = decbin($e->value[$e_length]);
@@ -1226,13 +1244,13 @@ class Math_BigInteger {
         $result = $result->$undo($n);
 
         for ($i = 0; $i < $e_length; ) {
-            if ( !$e_bits{$i} ) {
+            if ( !$e_bits[$i] ) {
                 $result = $result->_square();
                 $result = $result->$reduce($n);
                 $i++;
             } else {
                 for ($j = $window_size - 1; $j >= 0; $j--) {
-                    if ( $e_bits{$i + $j} ) {
+                    if ( !empty($e_bits[$i + $j]) ) {
                         break;
                     }
                 }
@@ -1413,7 +1431,7 @@ class Math_BigInteger {
      *
      * {@link http://groups.google.com/group/sci.crypt/msg/7a137205c1be7d85}
      *
-     * As for why we do all the bitmasking...  strange things can happen when converting from flots to ints. For
+     * As for why we do all the bitmasking...  strange things can happen when converting from floats to ints. For
      * instance, on some computers, var_dump((int) -4294967297) yields int(-1) and on others, it yields 
      * int(-2147483648).  To avoid problems stemming from this, we use bitmasks to guarantee that ints aren't
      * auto-converted to floats.  The outermost bitmask is present because without it, there's no guarantee that
@@ -1478,7 +1496,7 @@ class Math_BigInteger {
 
                 // if $x is less than 0, the first character of $x is a '-', so we'll remove it.  we can do this because
                 // $x mod $n == $x mod -$n.
-		$n = (bccomp($n->value, '0') < 0) ? substr($n->value, 1) : $n->value;
+                $n = (bccomp($n->value, '0') < 0) ? substr($n->value, 1) : $n->value;
 
                 if (bccomp($this->value,'0') < 0) {
                     $negated_this = new Math_BigInteger();
@@ -1737,7 +1755,7 @@ class Math_BigInteger {
                 return new Math_BigInteger($this->toBytes() | $x->toBytes(), 256);
         }
 
-	$result = $this->_copy();
+        $result = $this->_copy();
 
         $x_length = count($x->value);
         for ($i = 0; $i < $x_length; $i++) {
@@ -1767,7 +1785,7 @@ class Math_BigInteger {
                 return new Math_BigInteger($this->toBytes() ^ $x->toBytes(), 256);
         }
 
-	$result = $this->_copy();
+        $result = $this->_copy();
 
         $x_length = count($x->value);
         for ($i = 0; $i < $x_length; $i++) {
@@ -1851,7 +1869,6 @@ class Math_BigInteger {
 
                 break;
             case MATH_BIGINTEGER_MODE_BCMATH:
-
                 $temp->value = bcdiv($this->value, bcpow('2', $shift));
 
                 break;
@@ -1917,7 +1934,7 @@ class Math_BigInteger {
      */
     function random($min = false, $max = false, $generator = 'mt_rand')
     {
-	if ($min === false) {
+        if ($min === false) {
             $min = new Math_BigInteger(0);
         }
 
@@ -1939,6 +1956,7 @@ class Math_BigInteger {
         $max = $max->subtract($min);
         $max = ltrim($max->toBytes(), chr(0));
         $size = strlen($max) - 1;
+        $random = '';
 
         $bytes = $size & 3;
         for ($i = 0; $i < $bytes; $i++) {
@@ -2090,8 +2108,8 @@ class Math_BigInteger {
 
         $carry = 0;
         for ($i = strlen($x) - 1; $i >= 0; $i--) {
-            $temp = ord($x{$i}) << $shift | $carry;
-            $x{$i} = chr($temp);
+            $temp = ord($x[$i]) << $shift | $carry;
+            $x[$i] = chr($temp);
             $carry = $temp >> 8;
         }
         $carry = ($carry != 0) ? chr($carry) : '';
@@ -2126,11 +2144,11 @@ class Math_BigInteger {
         }
 
         $carry = 0;
-        $carry_shift = 8-$shift;
+        $carry_shift = 8 - $shift;
         for ($i = 0; $i < strlen($x); $i++) {
-            $temp = (ord($x{$i}) >> $shift) | $carry;
-            $carry = (ord($x{$i}) << $carry_shift) & 0xFF;
-            $x{$i} = chr($temp);
+            $temp = (ord($x[$i]) >> $shift) | $carry;
+            $carry = (ord($x[$i]) << $carry_shift) & 0xFF;
+            $x[$i] = chr($temp);
         }
         $x = ltrim($x, chr(0));
 
@@ -2167,7 +2185,3 @@ class Math_BigInteger {
         return $temp['int'];
     }
 }
-
-// vim: ts=4:sw=4:et:
-// vim6: fdl=1:
-?>
