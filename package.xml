@@ -12,25 +12,26 @@ Supports base-2, base-10, base-16, and base-256 numbers.  Uses the GMP or BCMath
   <email>terrafrost@php.net</email>
   <active>yes</active>
  </lead>
- <date>2007-02-05</date>
+ <date>2010-05-26</date>
  <version>
-  <release>1.0.0RC3</release>
+  <release>1.0.0</release>
   <api>1.0.0</api>
  </version>
  <stability>
-  <release>beta</release>
-  <api>beta</api>
+  <release>stable</release>
+  <api>stable</api>
  </stability>
  <license uri="http://www.gnu.org/licenses/lgpl.html">LGPL License</license>
  <notes>
-- Fix for bug #9654: In MODE_INTERNAL, modPow doesn't work occasionally
-- Other bug fixes
+- significant speed-ups
+- new functions: gcd(), extendedGCD(), isPrime(), random(), randomPrime(), bitwise_leftRotate(), bitwise_rightRotate(), setPrecision(), toHex(), toBits() and equals()
+- PHP_Compat is now optional.  Store it in your include path if you require PHP4 support but otherwise it is unrequired.
  </notes>
  <contents>
   <dir name="/">
     <file baseinstalldir="Math" name="BigInteger.php" role="php" />
     <file baseinstalldir="Math/BigInteger" name="demo/demo.php" role="php" />
-    <file baseinstalldir="Math/BigInteger" name="demo/ssh_demo.php" role="php" />
+    <file baseinstalldir="Math/BigInteger" name="demo/benchmark.php" role="php" />
   </dir>
  </contents>
  <dependencies>
@@ -41,11 +42,6 @@ Supports base-2, base-10, base-16, and base-256 numbers.  Uses the GMP or BCMath
    <pearinstaller>
     <min>1.4.0</min>
    </pearinstaller>
-   <package>
-    <name>PHP_Compat</name>
-    <channel>pear.php.net</channel>
-    <min>1.5</min>
-   </package>
    <extension>
     <name>pcre</name>
    </extension>
@@ -79,6 +75,22 @@ Supports base-2, base-10, base-16, and base-256 numbers.  Uses the GMP or BCMath
    <license uri="http://www.gnu.org/licenses/lgpl.html">LGPL</license>
    <notes>
 Added bitwise_or(), bitwise_and(), bitwise_xor(), and bitwise_not()
+   </notes>
+  </release>
+  <release>
+   <version>
+    <release>1.0.0RC3</release>
+    <api>1.0.0</api>
+   </version>
+   <stability>
+    <release>beta</release>
+    <api>beta</api>
+   </stability>
+   <date>2007-02-05</date>
+   <license uri="http://www.gnu.org/licenses/lgpl.html">LGPL</license>
+   <notes>
+- Fix for bug #9654: In MODE_INTERNAL, modPow doesn't work occasionally
+- Other bug fixes
    </notes>
   </release>
  </changelog>
