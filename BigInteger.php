@@ -70,7 +70,7 @@
  * @author     Jim Wigginton <terrafrost@php.net>
  * @copyright  MMVI Jim Wigginton
  * @license    http://www.opensource.org/licenses/mit-license.html  MIT License
- * @version    $Id$
+ * @version    $Id: BigInteger.php,v 1.33 2010/03/22 22:32:03 terrafrost Exp $
  * @link       http://pear.php.net/package/Math_BigInteger
  */
 
@@ -280,6 +280,10 @@ class Math_BigInteger {
                 default:
                     define('MATH_BIGINTEGER_MODE', MATH_BIGINTEGER_MODE_INTERNAL);
             }
+        }
+
+        if (function_exists('openssl_public_encrypt') && !defined('MATH_BIGINTEGER_OPENSSL_DISABLE') && !defined('MATH_BIGINTEGER_OPENSSL_ENABLED')) {
+            define('MATH_BIGINTEGER_OPENSSL_ENABLED', true);
         }
 
         switch ( MATH_BIGINTEGER_MODE ) {
@@ -601,13 +605,19 @@ class Math_BigInteger {
     {
         $hex = $this->toHex($twos_compliment);
         $bits = '';
-        for ($i = 0, $end = strlen($hex) & 0xFFFFFFF8; $i < $end; $i+=8) {
-            $bits.= str_pad(decbin(hexdec(substr($hex, $i, 8))), 32, '0', STR_PAD_LEFT);
+        for ($i = strlen($hex) - 8, $start = strlen($hex) & 7; $i >= $start; $i-=8) {
+            $bits = str_pad(decbin(hexdec(substr($hex, $i, 8))), 32, '0', STR_PAD_LEFT) . $bits;
         }
-        if ($end != strlen($hex)) { // hexdec('') == 0
-            $bits.= str_pad(decbin(hexdec(substr($hex, $end))), strlen($hex) & 7, '0', STR_PAD_LEFT);
+        if ($start) { // hexdec('') == 0
+            $bits = str_pad(decbin(hexdec(substr($hex, 0, $start))), 8, '0', STR_PAD_LEFT) . $bits;
         }
-        return $this->precision > 0 ? substr($bits, -$this->precision) : ltrim($bits, '0');
+        $result = $this->precision > 0 ? substr($bits, -$this->precision) : ltrim($bits, '0');
+
+        if ($twos_compliment && $this->compare(new Math_BigInteger()) > 0 && $this->precision <= 0) {
+            return '0' . $result;
+        }
+
+        return $result;
     }
 
     /**
@@ -1591,13 +1601,54 @@ class Math_BigInteger {
             return $this->_normalize($temp->modPow($e, $n));
         }
 
-        switch ( MATH_BIGINTEGER_MODE ) {
-            case MATH_BIGINTEGER_MODE_GMP:
-                $temp = new Math_BigInteger();
-                $temp->value = gmp_powm($this->value, $e->value, $n->value);
+        if ( MATH_BIGINTEGER_MODE == MATH_BIGINTEGER_MODE_GMP ) {
+            $temp = new Math_BigInteger();
+            $temp->value = gmp_powm($this->value, $e->value, $n->value);
 
-                return $this->_normalize($temp);
-            case MATH_BIGINTEGER_MODE_BCMATH:
+            return $this->_normalize($temp);
+        }
+
+        if ($this->compare(new Math_BigInteger()) < 0 || $this->compare($n) > 0) {
+            list(, $temp) = $this->divide($n);
+            return $temp->modPow($e, $n);
+        }
+
+        if (defined('MATH_BIGINTEGER_OPENSSL_ENABLED')) {
+            $components = array(
+                'modulus' => $n->toBytes(true),
+                'publicExponent' => $e->toBytes(true)
+            );
+
+            $components = array(
+                'modulus' => pack('Ca*a*', 2, $this->_encodeASN1Length(strlen($components['modulus'])), $components['modulus']),
+                'publicExponent' => pack('Ca*a*', 2, $this->_encodeASN1Length(strlen($components['publicExponent'])), $components['publicExponent'])
+            );
+
+            $RSAPublicKey = pack('Ca*a*a*',
+                48, $this->_encodeASN1Length(strlen($components['modulus']) + strlen($components['publicExponent'])),
+                $components['modulus'], $components['publicExponent']
+            );
+
+            $rsaOID = pack('H*', '300d06092a864886f70d0101010500'); // hex version of MA0GCSqGSIb3DQEBAQUA
+            $RSAPublicKey = chr(0) . $RSAPublicKey;
+            $RSAPublicKey = chr(3) . $this->_encodeASN1Length(strlen($RSAPublicKey)) . $RSAPublicKey;
+
+            $encapsulated = pack('Ca*a*',
+                48, $this->_encodeASN1Length(strlen($rsaOID . $RSAPublicKey)), $rsaOID . $RSAPublicKey
+            );
+
+            $RSAPublicKey = "-----BEGIN PUBLIC KEY-----\r\n" .
+                             chunk_split(base64_encode($encapsulated)) .
+                             '-----END PUBLIC KEY-----';
+
+            $plaintext = str_pad($this->toBytes(), strlen($n->toBytes(true)) - 1, "\0", STR_PAD_LEFT);
+
+            if (openssl_public_encrypt($plaintext, $result, $RSAPublicKey, OPENSSL_NO_PADDING)) {
+                return new Math_BigInteger($result, 256);
+            }
+        }
+
+        if ( MATH_BIGINTEGER_MODE == MATH_BIGINTEGER_MODE_BCMATH ) {
                 $temp = new Math_BigInteger();
                 $temp->value = bcpowmod($this->value, $e->value, $n->value, 0);
 
@@ -2944,20 +2995,13 @@ class Math_BigInteger {
     /**
      * Set random number generator function
      *
-     * $generator should be the name of a random generating function whose first parameter is the minimum
-     * value and whose second parameter is the maximum value.  If this function needs to be seeded, it should
-     * be seeded prior to calling Math_BigInteger::random() or Math_BigInteger::randomPrime()
+     * This function is deprecated.
      *
-     * If the random generating function is not explicitly set, it'll be assumed to be mt_rand().
-     *
-     * @see random()
-     * @see randomPrime()
-     * @param optional String $generator
+     * @param String $generator
      * @access public
      */
     function setRandomGenerator($generator)
     {
-        $this->generator = $generator;
     }
 
     /**
@@ -2994,27 +3038,43 @@ class Math_BigInteger {
         $max = $max->subtract($min);
         $max = ltrim($max->toBytes(), chr(0));
         $size = strlen($max) - 1;
-        $random = '';
 
-        $bytes = $size & 1;
-        for ($i = 0; $i < $bytes; ++$i) {
-            $random.= chr($generator(0, 255));
-        }
-
-        $blocks = $size >> 1;
-        for ($i = 0; $i < $blocks; ++$i) {
-            // mt_rand(-2147483648, 0x7FFFFFFF) always produces -2147483648 on some systems
-            $random.= pack('n', $generator(0, 0xFFFF));
-        }
-
-        $temp = new Math_BigInteger($random, 256);
-        if ($temp->compare(new Math_BigInteger(substr($max, 1), 256)) > 0) {
-            $random = chr($generator(0, ord($max[0]) - 1)) . $random;
+        $crypt_random = function_exists('crypt_random_string') || (!class_exists('Crypt_Random') && function_exists('crypt_random_string'));
+        if ($crypt_random) {
+            $random = crypt_random_string($size);
         } else {
-            $random = chr($generator(0, ord($max[0])    )) . $random;
+            $random = '';
+
+            if ($size & 1) {
+                $random.= chr(mt_rand(0, 255));
+            }
+
+            $blocks = $size >> 1;
+            for ($i = 0; $i < $blocks; ++$i) {
+                // mt_rand(-2147483648, 0x7FFFFFFF) always produces -2147483648 on some systems
+                $random.= pack('n', mt_rand(0, 0xFFFF));
+            }
         }
 
-        $random = new Math_BigInteger($random, 256);
+        $fragment = new Math_BigInteger($random, 256);
+        $leading = $fragment->compare(new Math_BigInteger(substr($max, 1), 256)) > 0 ?
+            ord($max[0]) - 1 : ord($max[0]);
+
+        if (!$crypt_random) {
+            $msb = chr(mt_rand(0, $leading));
+        } else {
+            $cutoff = floor(0xFF / $leading) * $leading;
+            while (true) {
+                $msb = ord(crypt_random_string(1));
+                if ($msb <= $cutoff) {
+                    $msb%= $leading;
+                    break;
+                }
+            }
+            $msb = chr($msb);
+        }
+
+        $random = new Math_BigInteger($msb . $random, 256);
 
         return $this->_normalize($random->add($min));
     }
@@ -3549,5 +3609,25 @@ class Math_BigInteger {
     {
         $temp = unpack('Nint', str_pad($x, 4, chr(0), STR_PAD_LEFT));
         return $temp['int'];
+    }
+
+    /**
+     * DER-encode an integer
+     *
+     * The ability to DER-encode integers is needed to create RSA public keys for use with OpenSSL
+     *
+     * @see modPow()
+     * @access private
+     * @param Integer $length
+     * @return String
+     */
+    function _encodeASN1Length($length)
+    {
+        if ($length <= 0x7F) {
+            return chr($length);
+        }
+
+        $temp = ltrim(pack('N', $length), chr(0));
+        return pack('Ca*', 0x80 | strlen($temp), $temp);
     }
 }
