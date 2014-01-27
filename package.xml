@@ -12,20 +12,21 @@ Supports base-2, base-10, base-16, and base-256 numbers.  Uses the GMP or BCMath
   <email>terrafrost@php.net</email>
   <active>yes</active>
  </lead>
- <date>2010-05-26</date>
+ <date>2014-01-26</date>
  <version>
-  <release>1.0.0</release>
+  <release>1.0.1</release>
   <api>1.0.0</api>
  </version>
  <stability>
   <release>stable</release>
   <api>stable</api>
  </stability>
- <license uri="http://www.gnu.org/licenses/lgpl.html">LGPL License</license>
+ <license uri="http://www.opensource.org/licenses/mit-license.html">MIT</license>
  <notes>
-- significant speed-ups
-- new functions: gcd(), extendedGCD(), isPrime(), random(), randomPrime(), bitwise_leftRotate(), bitwise_rightRotate(), setPrecision(), toHex(), toBits() and equals()
-- PHP_Compat is now optional.  Store it in your include path if you require PHP4 support but otherwise it is unrequired.
+- (internal, bcmath) use OpenSSL, if available, for modular exponentiation
+- (internal) use 64-bit ints, if available, and 64-bit floats, otherwise
+- (all) improve random number generation
+- change license to less restrictive MIT license
  </notes>
  <contents>
   <dir name="/">
@@ -95,19 +96,19 @@ Added bitwise_or(), bitwise_and(), bitwise_xor(), and bitwise_not()
   </release>
   <release>
    <version>
-    <release>1.0.0RC4</release>
+    <release>1.0.0</release>
     <api>1.0.0</api>
    </version>
    <stability>
-    <release>beta</release>
-    <api>beta</api>
+    <release>stable</release>
+    <api>stable</api>
    </stability>
-   <date>2013-01-27</date>
-   <license uri="http://www.opensource.org/licenses/mit-license.html">MIT</license>
+   <date>2010-05-26</date>
+   <license uri="http://www.gnu.org/licenses/lgpl.html">LGPL</license>
    <notes>
-- numerous internal speedup's
-- new functions: toHex(), toBits(), extendedGCD(), gcd(), equals(), setPrecision(), bitwise_leftRotate(), bitwise_rightRotate(), random(), randomPrime() and isPrime()
-- change license to less restrictive MIT license
+- significant speed-ups
+- new functions: gcd(), extendedGCD(), isPrime(), random(), randomPrime(), bitwise_leftRotate(), bitwise_rightRotate(), setPrecision(), toHex(), toBits() and equals()
+- PHP_Compat is now optional.  Store it in your include path if you require PHP4 support but otherwise it is unrequired.
    </notes>
   </release>
  </changelog>
