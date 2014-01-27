@@ -93,5 +93,22 @@ Added bitwise_or(), bitwise_and(), bitwise_xor(), and bitwise_not()
 - Other bug fixes
    </notes>
   </release>
+  <release>
+   <version>
+    <release>1.0.0RC4</release>
+    <api>1.0.0</api>
+   </version>
+   <stability>
+    <release>beta</release>
+    <api>beta</api>
+   </stability>
+   <date>2013-01-27</date>
+   <license uri="http://www.opensource.org/licenses/mit-license.html">MIT</license>
+   <notes>
+- numerous internal speedup's
+- new functions: toHex(), toBits(), extendedGCD(), gcd(), equals(), setPrecision(), bitwise_leftRotate(), bitwise_rightRotate(), random(), randomPrime() and isPrime()
+- change license to less restrictive MIT license
+   </notes>
+  </release>
  </changelog>
 </package>
