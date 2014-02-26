@@ -1,22 +1,41 @@
 {
-	"name"        : "pear/math_biginteger",
-	"description" : "Pure-PHP arbitrary precission integer arithmetic library. If GMP or BCMath are available they are used.",
-	"type"        : "library",
-	"keywords"    : [ "integer", "arbitrary", "precision", "bcmath", "gmp" ],
-	"homepage"    : "https://github.com/pear/Math_BigInteger",
-	"license"     : "LGPL-2.1+",
-	"authors"     : [
-		{
-			"name"  : "Jim Wigginton",
-			"email" : "terrafrost@php.net"
-		}
-	],
-	"require" : {
-		"php"      : ">=4.2.0",
-		"ext-pcre" : "*"
-	},
-	"suggest" : {
-		"ext-bcmath" : "Allows using the BCMath extension internally for computation. Faster than native implementation.",
-		"ext-gmp"    : "Allows using the GNU Multiple Precision extension internally for computation. If you are doing a lot of computation this is the recommended extension."
-	}
+    "name": "pear/math_biginteger",
+    "description": "Pure-PHP arbitrary precission integer arithmetic library. If GMP or BCMath are available they are used.",
+    "type": "library",
+    "keywords": [
+        "integer",
+        "arbitrary",
+        "precision",
+        "bcmath",
+        "gmp"
+    ],
+    "homepage": "https://github.com/pear/Math_BigInteger",
+    "license": "LGPL-2.1+",
+    "authors": [
+        {
+            "name": "Jim Wigginton",
+            "email": "terrafrost@php.net"
+        }
+    ],
+    "require": {
+        "php": ">=4.2.0",
+        "ext-pcre": "*",
+        "pear/pear_exception": "*"
+    },
+    "suggest": {
+        "ext-bcmath": "Allows using the BCMath extension internally for computation. Faster than native implementation.",
+        "ext-gmp": "Allows using the GNU Multiple Precision extension internally for computation. If you are doing a lot of computation this is the recommended extension."
+    },
+    "autoload": {
+        "classmap": [
+            "./"
+        ]
+    },
+    "support": {
+        "issues": "http://pear.php.net/bugs/search.php?cmd=display&package_name[]=Math_BigInteger",
+        "source": "https://github.com/pear/Math_BigInteger"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "*"
+    }
 }
