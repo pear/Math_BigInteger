@@ -1,10 +1,10 @@
-<?
+<?php
 // $Id$
 // Example of how to use of BigInteger.  The output can be compared to the output that the BCMath functions would yield.
 
 // bcpowmod is included with Math_BigInteger.php via PHP_Compat.
 
-include('../Math/BigInteger.php');
+require(__DIR__.'/../vendor/autoload.php');
 
 $x = mt_rand(1,10000000);
 $y = mt_rand(1,10000000);

@@ -4,7 +4,7 @@ On a 1.6GHz Pentium M, the following takes about 1.33 seconds with the pure-PHP 
 0.66 seconds with BCmath, and 0.001 seconds with GMP.
 */
 
-include('../Math/BigInteger.php');
+require(__DIR__.'/../vendor/autoload.php');
 //define('MATH_BIGINTEGER_MODE', MATH_BIGINTEGER_MODE_INTERNAL);
 //define('MATH_BIGINTEGER_MODE', MATH_BIGINTEGER_MODE_BCMATH);
 
