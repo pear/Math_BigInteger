@@ -20,7 +20,7 @@
     "require": {
         "php": ">=4.2.0",
         "ext-pcre": "*",
-        "pear/pear_exception": "*"
+        "pear/pear_exception": ">=1.0-beta1"
     },
     "suggest": {
         "ext-bcmath": "Allows using the BCMath extension internally for computation. Faster than native implementation.",
