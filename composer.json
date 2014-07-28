@@ -19,17 +19,16 @@
     ],
     "require": {
         "php": ">=4.2.0",
-        "ext-pcre": "*",
-        "pear/pear_exception": ">=1.0-beta1"
+        "ext-pcre": "*"
     },
     "suggest": {
         "ext-bcmath": "Allows using the BCMath extension internally for computation. Faster than native implementation.",
         "ext-gmp": "Allows using the GNU Multiple Precision extension internally for computation. If you are doing a lot of computation this is the recommended extension."
     },
     "autoload": {
-        "classmap": [
-            "./"
-        ]
+        "psr-0": {
+            "Math_": "./"
+        }
     },
     "support": {
         "issues": "http://pear.php.net/bugs/search.php?cmd=display&package_name[]=Math_BigInteger",
