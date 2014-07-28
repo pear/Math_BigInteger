@@ -30,7 +30,7 @@ Supports base-2, base-10, base-16, and base-256 numbers.  Uses the GMP or BCMath
  </notes>
  <contents>
   <dir name="/">
-    <file baseinstalldir="Math" name="BigInteger.php" role="php" />
+    <file name="Math/BigInteger.php" role="php" />
     <file baseinstalldir="Math/BigInteger" name="demo/demo.php" role="php" />
     <file baseinstalldir="Math/BigInteger" name="demo/benchmark.php" role="php" />
   </dir>
