@@ -256,7 +256,7 @@ class Math_BigInteger
      * @return Math_BigInteger
      * @access public
      */
-    public function __construct($x = 0, $base = 10)
+    function __construct($x = 0, $base = 10)
     {
         if ( !defined('MATH_BIGINTEGER_MODE') ) {
             switch (true) {
@@ -500,6 +500,16 @@ class Math_BigInteger
             default:
                 // base not supported, so we'll let $this == 0
         }
+    }
+
+    /**
+     * This function exists to maintain backwards compatibility with older code.
+     * @param int $x
+     * @param int $base
+     */
+    public function Math_BigInteger($x = 0, $base = 10)
+    {
+        self::__construct($x, $base);
     }
 
     /**
