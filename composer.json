@@ -10,7 +10,7 @@
         "gmp"
     ],
     "homepage": "https://github.com/pear/Math_BigInteger",
-    "license": "LGPL-2.1+",
+    "license": "MIT",
     "authors": [
         {
             "name": "Jim Wigginton",
@@ -33,8 +33,5 @@
     "support": {
         "issues": "http://pear.php.net/bugs/search.php?cmd=display&package_name[]=Math_BigInteger",
         "source": "https://github.com/pear/Math_BigInteger"
-    },
-    "require-dev": {
-        "phpunit/phpunit": "*"
     }
 }
