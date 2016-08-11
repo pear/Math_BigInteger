@@ -2,7 +2,7 @@
 <package version="2.0" xmlns="http://pear.php.net/dtd/package-2.0" xmlns:tasks="http://pear.php.net/dtd/tasks-1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://pear.php.net/dtd/tasks-1.0 http://pear.php.net/dtd/tasks-1.0.xsd http://pear.php.net/dtd/package-2.0 http://pear.php.net/dtd/package-2.0.xsd">
  <name>Math_BigInteger</name>
  <channel>pear.php.net</channel>
- <summary>Pure-PHP arbitrary precission integer arithmetic library</summary>
+ <summary>Pure-PHP arbitrary precision integer arithmetic library</summary>
  <description>
 Supports base-2, base-10, base-16, and base-256 numbers.  Uses the GMP or BCMath extensions, if available, and an internal implementation, otherwise.
  </description>
