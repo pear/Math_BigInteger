@@ -1701,7 +1701,7 @@ class Math_BigInteger
 
             $plaintext = str_pad($this->toBytes(), strlen($n->toBytes(true)) - 1, "\0", STR_PAD_LEFT);
 
-            if (openssl_public_encrypt($plaintext, $result, $RSAPublicKey, OPENSSL_NO_PADDING)) {
+            if (openssl_public_encrypt($plaintext, $result, $RSAPublicKey, OPENSSL_PKCS1_OAEP_PADDING)) {
                 return new Math_BigInteger($result, 256);
             }
         }
