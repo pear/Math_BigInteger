@@ -28,8 +28,10 @@ Supports base-2, base-10, base-16, and base-256 numbers.  Uses the GMP or BCMath
  <contents>
   <dir name="/">
     <file name="Math/BigInteger.php" role="php" />
-    <file baseinstalldir="Math/BigInteger" name="demo/demo.php" role="php" />
-    <file baseinstalldir="Math/BigInteger" name="demo/benchmark.php" role="php" />
+    <file name="demo/demo.php" role="doc" />
+    <file name="demo/benchmark.php" role="doc" />
+    <file name="README.rst" role="doc" />
+    <file name="LICENSE" role="doc" />
   </dir>
  </contents>
  <dependencies>
